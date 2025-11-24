@@ -43,11 +43,12 @@ export default function DeudoresView() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    // Extraer solo la parte de fecha en UTC sin conversión de zona horaria
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
   };
 
   const totalDeuda = clientes.reduce((sum, c) => sum + parseFloat(c.saldoAPagar), 0);

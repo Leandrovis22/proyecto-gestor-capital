@@ -90,19 +90,20 @@ export default function Dashboard() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    // Extraer solo la parte de fecha en UTC sin conversión de zona horaria
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
   };
 
   return (
     <div className="space-y-8">
-      {/* Sección: Esta Semana */}
+      {/* Sección: Semana Pasada */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          📅 Esta Semana
+          📅 Semana Pasada
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${

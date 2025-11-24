@@ -53,24 +53,40 @@ export default function VentasView() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    // Extraer solo la parte de fecha en UTC sin conversión de zona horaria
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
   };
 
   const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
 
-  // Calcular ventas de esta semana
+  // Calcular ventas de última semana completa (lunes a domingo anterior)
   const hoy = new Date();
   const diaSemana = hoy.getDay();
-  const diasDesdeInicio = diaSemana === 0 ? 6 : diaSemana - 1;
-  const inicioSemana = new Date(hoy);
-  inicioSemana.setDate(hoy.getDate() - diasDesdeInicio);
-  inicioSemana.setHours(0, 0, 0, 0);
+  
+  // Calcular días hasta el lunes pasado
+  let diasHastaLunesPasado;
+  if (diaSemana === 0) {
+    diasHastaLunesPasado = 7;
+  } else {
+    diasHastaLunesPasado = diaSemana + 6;
+  }
+  
+  const fechaLunesPasado = new Date(hoy);
+  fechaLunesPasado.setDate(hoy.getDate() - diasHastaLunesPasado);
+  fechaLunesPasado.setHours(0, 0, 0, 0);
+  
+  const fechaDomingoPasado = new Date(fechaLunesPasado);
+  fechaDomingoPasado.setDate(fechaLunesPasado.getDate() + 6);
+  fechaDomingoPasado.setHours(23, 59, 59, 999);
 
-  const ventasSemana = ventas.filter(v => new Date(v.fechaVenta) >= inicioSemana);
+  const ventasSemana = ventas.filter(v => {
+    const fechaVenta = new Date(v.fechaVenta);
+    return fechaVenta >= fechaLunesPasado && fechaVenta <= fechaDomingoPasado;
+  });
   const totalVentasSemana = ventasSemana.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
 
   if (loading) {
@@ -95,7 +111,7 @@ export default function VentasView() {
             <p className="text-5xl font-bold text-purple-600">{formatMoney(totalVentas.toString())}</p>
             <div className="mt-4 flex items-center gap-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
-                📊 {ventasSemana.length} ventas esta semana
+                📊 {ventasSemana.length} ventas semana pasada
               </span>
               <span className="text-lg font-bold text-purple-700">
                 {formatMoney(totalVentasSemana.toString())}

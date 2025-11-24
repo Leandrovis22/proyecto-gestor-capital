@@ -54,24 +54,40 @@ export default function PagosView() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    // Extraer solo la parte de fecha en UTC sin conversión de zona horaria
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
   };
 
   const totalPagos = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
 
-  // Calcular pagos de esta semana
+  // Calcular pagos de última semana completa (lunes a domingo anterior)
   const hoy = new Date();
   const diaSemana = hoy.getDay();
-  const diasDesdeInicio = diaSemana === 0 ? 6 : diaSemana - 1;
-  const inicioSemana = new Date(hoy);
-  inicioSemana.setDate(hoy.getDate() - diasDesdeInicio);
-  inicioSemana.setHours(0, 0, 0, 0);
+  
+  // Calcular días hasta el lunes pasado
+  let diasHastaLunesPasado;
+  if (diaSemana === 0) {
+    diasHastaLunesPasado = 7;
+  } else {
+    diasHastaLunesPasado = diaSemana + 6;
+  }
+  
+  const fechaLunesPasado = new Date(hoy);
+  fechaLunesPasado.setDate(hoy.getDate() - diasHastaLunesPasado);
+  fechaLunesPasado.setHours(0, 0, 0, 0);
+  
+  const fechaDomingoPasado = new Date(fechaLunesPasado);
+  fechaDomingoPasado.setDate(fechaLunesPasado.getDate() + 6);
+  fechaDomingoPasado.setHours(23, 59, 59, 999);
 
-  const pagosSemana = pagos.filter(p => new Date(p.fechaPago) >= inicioSemana);
+  const pagosSemana = pagos.filter(p => {
+    const fechaPago = new Date(p.fechaPago);
+    return fechaPago >= fechaLunesPasado && fechaPago <= fechaDomingoPasado;
+  });
   const totalPagosSemana = pagosSemana.reduce((sum, p) => sum + parseFloat(p.monto), 0);
 
   if (loading) {
@@ -96,7 +112,7 @@ export default function PagosView() {
             <p className="text-5xl font-bold text-green-600">{formatMoney(totalPagos.toString())}</p>
             <div className="mt-4 flex items-center gap-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 font-semibold">
-                📊 {pagosSemana.length} pagos esta semana
+                📊 {pagosSemana.length} pagos semana pasada
               </span>
               <span className="text-lg font-bold text-green-700">
                 {formatMoney(totalPagosSemana.toString())}

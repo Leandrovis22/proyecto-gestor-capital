@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateSession } from '@/lib/sessionManager';
 
 // ========================================
 // API PARA DISPARAR SINCRONIZACIÓN EN GOOGLE APPS SCRIPT
@@ -14,13 +15,20 @@ const API_KEY = process.env.SYNC_API_KEY || '';
 
 function verificarAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
+  const sessionToken = request.headers.get('x-session-token');
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
+  // Autenticación con Bearer token (interno)
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    return token === API_KEY;
   }
   
-  const token = authHeader.split(' ')[1];
-  return token === API_KEY;
+  // Autenticación con session token (cliente)
+  if (sessionToken) {
+    return validateSession(sessionToken);
+  }
+  
+  return false;
 }
 
 // ========================================

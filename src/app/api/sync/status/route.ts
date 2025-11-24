@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateSession } from '@/lib/sessionManager';
 
-const API_KEY = process.env.API_KEY || '4781a3a659d818c7bf991cba7bea990dad253d7765c6094172f76fb036be1ad7';
+const API_KEY = process.env.SYNC_API_KEY || '4781a3a659d818c7bf991cba7bea990dad253d7765c6094172f76fb036be1ad7';
 
 /**
  * GET /api/sync/status
@@ -8,11 +9,25 @@ const API_KEY = process.env.API_KEY || '4781a3a659d818c7bf991cba7bea990dad253d77
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticación
+    // Verificar autenticación - puede venir como Bearer token (interno) o Session token (cliente)
     const authHeader = request.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const sessionToken = request.headers.get('x-session-token');
     
-    if (!token || token !== API_KEY) {
+    // Si viene con Bearer token (llamada interna entre servicios)
+    if (authHeader) {
+      const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token || token !== API_KEY) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      }
+    }
+    // Si viene con session token (cliente web)
+    else if (sessionToken) {
+      if (!validateSession(sessionToken)) {
+        return NextResponse.json({ error: 'Sesión inválida o expirada' }, { status: 401 });
+      }
+    }
+    // Sin autenticación
+    else {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

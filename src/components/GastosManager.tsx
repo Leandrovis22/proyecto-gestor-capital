@@ -1,5 +1,6 @@
 'use client';
 
+import { authFetch } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
 interface Gasto {
@@ -29,7 +30,7 @@ export default function GastosManager() {
 
   const fetchGastos = async () => {
     try {
-      const response = await fetch('/api/gastos');
+      const response = await authFetch('/api/gastos');
       const data = await response.json();
       setGastos(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -60,7 +61,7 @@ export default function GastosManager() {
       const url = editingId ? `/api/gastos/${editingId}` : '/api/gastos';
       const method = editingId ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +97,7 @@ export default function GastosManager() {
     if (!confirm('¿Estás seguro de eliminar este gasto?')) return;
 
     try {
-      const response = await fetch(`/api/gastos/${id}`, {
+      const response = await authFetch(`/api/gastos/${id}`, {
         method: 'DELETE',
       });
 
@@ -113,7 +114,7 @@ export default function GastosManager() {
 
   const handleToggleConfirmado = async (gasto: Gasto) => {
     try {
-      const response = await fetch(`/api/gastos/${gasto.id}`, {
+      const response = await authFetch(`/api/gastos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,24 +161,38 @@ export default function GastosManager() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col justify-center items-center py-20">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-200"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-red-600 absolute top-0"></div>
+        </div>
+        <p className="mt-6 text-gray-600 font-medium text-lg">Cargando gastos...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-          <h3 className="text-gray-600 text-sm font-medium mb-2">Total Gastos Confirmados</h3>
-          <p className="text-3xl font-bold text-red-600">{formatMoney(totalConfirmados.toString())}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-lg p-8 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos Confirmados</h3>
+              <p className="text-5xl font-bold text-red-600">{formatMoney(totalConfirmados.toString())}</p>
+            </div>
+            <div className="text-6xl">💸</div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
-          <h3 className="text-gray-600 text-sm font-medium mb-2">Gastos Por Confirmar</h3>
-          <p className="text-3xl font-bold text-yellow-600">{formatMoney(totalPorConfirmar.toString())}</p>
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl shadow-lg p-8 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Por Confirmar</h3>
+              <p className="text-5xl font-bold text-yellow-600">{formatMoney(totalPorConfirmar.toString())}</p>
+            </div>
+            <div className="text-6xl">⏳</div>
+          </div>
         </div>
       </div>
 
@@ -185,36 +200,36 @@ export default function GastosManager() {
       {!isAdding && (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md"
+          className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-lg"
         >
-          ➕ Agregar Gasto
+          ➕ Agregar Nuevo Gasto
         </button>
       )}
 
       {/* Formulario */}
       {isAdding && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 border-t-4 border-blue-500">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             {editingId ? '✏️ Editar Gasto' : '➕ Nuevo Gasto'}
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Descripción
               </label>
               <input
                 type="text"
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="Ej: Pago de alquiler"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Monto
                 </label>
                 <input
@@ -222,27 +237,27 @@ export default function GastosManager() {
                   step="0.01"
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="0.00"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Fecha
                 </label>
                 <input
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <input
                 type="checkbox"
                 id="confirmado"
@@ -255,17 +270,17 @@ export default function GastosManager() {
               </label>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-md"
               >
                 {editingId ? 'Actualizar' : 'Guardar'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
               >
                 Cancelar
               </button>
@@ -275,62 +290,89 @@ export default function GastosManager() {
       )}
 
       {/* Lista de gastos */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">📋 Lista de Gastos</h3>
-        <div className="space-y-3">
+      <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">📋 Lista de Gastos</h3>
+        <div className="overflow-x-auto">
           {gastos.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No hay gastos registrados</p>
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">📭</div>
+              <p className="text-gray-500 text-lg font-medium">No hay gastos registrados</p>
+            </div>
           ) : (
-            gastos.map((gasto) => (
-              <div
-                key={gasto.id}
-                className={`flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg border-2 ${
-                  gasto.confirmado
-                    ? 'bg-white border-gray-200'
-                    : 'bg-yellow-50 border-yellow-300'
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-gray-900">{gasto.descripcion}</h4>
-                    {!gasto.confirmado && (
-                      <span className="px-2 py-1 text-xs bg-yellow-200 text-yellow-800 rounded-full font-medium">
-                        Por confirmar
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600">{formatDate(gasto.fecha)}</p>
-                  <p className="text-lg font-bold text-red-600 mt-1">
-                    {formatMoney(gasto.monto)}
-                  </p>
-                </div>
-
-                <div className="flex gap-2 mt-3 md:mt-0">
-                  <button
-                    onClick={() => handleToggleConfirmado(gasto)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      gasto.confirmado
-                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+            <table className="min-w-full">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Fecha</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {gastos.map((gasto) => (
+                  <tr 
+                    key={gasto.id} 
+                    className={`border-b border-gray-100 hover:bg-gradient-to-r transition-colors duration-150 ${
+                      gasto.confirmado 
+                        ? 'hover:from-gray-50 hover:to-gray-100' 
+                        : 'bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100'
                     }`}
                   >
-                    {gasto.confirmado ? '⏸️ Desconfirmar' : '✅ Confirmar'}
-                  </button>
-                  <button
-                    onClick={() => handleEdit(gasto)}
-                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(gasto.id)}
-                    className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))
+                    <td className="px-6 py-4 text-sm text-gray-600 font-semibold whitespace-nowrap">
+                      {formatDate(gasto.fecha)}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      {gasto.descripcion}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-red-600 whitespace-nowrap">
+                      {formatMoney(gasto.monto)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {!gasto.confirmado && (
+                        <span className="inline-flex items-center px-3 py-1 text-xs bg-yellow-200 text-yellow-800 rounded-full font-semibold">
+                          Por confirmar
+                        </span>
+                      )}
+                      {gasto.confirmado && (
+                        <span className="inline-flex items-center px-3 py-1 text-xs bg-green-200 text-green-800 rounded-full font-semibold">
+                          Confirmado
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => handleToggleConfirmado(gasto)}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow-md text-sm ${
+                            gasto.confirmado
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                          title={gasto.confirmado ? 'Desconfirmar' : 'Confirmar'}
+                        >
+                          {gasto.confirmado ? '⏸️' : '✅'}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(gasto)}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all duration-200 font-semibold shadow-sm hover:shadow-md text-sm"
+                          title="Editar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(gasto.id)}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all duration-200 font-semibold shadow-sm hover:shadow-md text-sm"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>

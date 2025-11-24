@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateAuth } from '@/lib/validateAuth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = validateAuth(request);
+  if (authError) return authError;
+  
   try {
     const body = await request.json();
     const inversion = await prisma.inversion.create({

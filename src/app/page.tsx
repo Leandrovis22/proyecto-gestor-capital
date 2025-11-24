@@ -1,16 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Dashboard from '@/components/Dashboard';
 import GastosManager from '@/components/GastosManager';
 import InversionesManager from '@/components/InversionesManager';
 import PagosView from '@/components/PagosView';
 import VentasView from '@/components/VentasView';
 import DeudoresView from '@/components/DeudoresView';
+import LoginForm from '@/components/LoginForm';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'gastos' | 'inversiones' | 'pagos' | 'ventas' | 'deudores'>('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Verificar si hay token de sesión guardado
+    const savedToken = sessionStorage.getItem('sessionToken');
+    if (savedToken) {
+      setSessionToken(savedToken);
+      setIsAuthenticated(true);
+      loadLastUpdate(savedToken);
+    }
+  }, []);
+
+  const loadLastUpdate = (token: string) => {
+    fetch('/api/sync/status', {
+      headers: {
+        'X-Session-Token': token
+      }
+    })
+      .then(res => {
+        if (res.status === 401) {
+          // Token inválido o expirado, cerrar sesión
+          handleLogout();
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.ultimaSincronizacion) {
+          setLastUpdate(data.ultimaSincronizacion);
+        }
+      })
+      .catch(err => console.error('Error obteniendo estado:', err));
+  };
+
+  const handleLogin = (token: string) => {
+    setSessionToken(token);
+    setIsAuthenticated(true);
+    loadLastUpdate(token);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('sessionToken');
+    setSessionToken(null);
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <LoginForm onLogin={handleLogin} />;
+  }
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   const handleSync = async (forzarTodo: boolean) => {
     try {
@@ -19,7 +81,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer 4781a3a659d818c7bf991cba7bea990dad253d7765c6094172f76fb036be1ad7'
+          'X-Session-Token': sessionToken || ''
         },
         body: JSON.stringify({ forzarTodo })
       });
@@ -40,34 +102,50 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-white shadow-lg border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              💰 Gestor de Capital
-            </h1>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+                💎 Gestor Capital Julieta Joyas
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">Por Leandro Viscolungo</p>
+              {lastUpdate && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ⏱️ Última actualización: {formatDateTime(lastUpdate)}
+                </p>
+              )}
+            </div>
             
             <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={() => handleSync(false)}
                 disabled={isRefreshing}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-md"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
                 {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
               </button>
               
               <button
                 onClick={() => {
-                  if (confirm('⚠️ Esto sincronizará TODOS los archivos y puede tardar varios minutos.\n\n¿Continuar?')) {
+                  if (confirm('⚠️ ADVERTENCIA\n\nEsto va a recargar TODOS los datos. Será lento y puede causar corte en el servicio de Google Drive si se utiliza muy seguido.\n\n💡 Se recomienda usar solo 1 vez por semana.\n\n¿Deseas continuar?')) {
                     handleSync(true);
                   }
                 }}
                 disabled={isRefreshing}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-md"
+                className="px-5 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
                 🔄 Actualizar Todo
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="px-5 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                title="Cerrar sesión"
+              >
+                🔓 Salir
               </button>
             </div>
           </div>
@@ -75,64 +153,64 @@ export default function Home() {
       </header>
 
       {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="bg-white rounded-lg shadow-md p-1 flex flex-wrap gap-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div className="bg-white rounded-xl shadow-lg p-2 flex flex-wrap gap-2">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'dashboard'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             📊 Dashboard
           </button>
           <button
             onClick={() => setActiveTab('pagos')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'pagos'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             💰 Pagos
           </button>
           <button
             onClick={() => setActiveTab('ventas')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'ventas'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             🛒 Ventas
           </button>
           <button
             onClick={() => setActiveTab('deudores')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'deudores'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             👥 Deudores
           </button>
           <button
             onClick={() => setActiveTab('gastos')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'gastos'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             💸 Gastos
           </button>
           <button
             onClick={() => setActiveTab('inversiones')}
-            className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 min-w-[120px] px-5 py-3 rounded-lg font-semibold transition-all duration-200 ${
               activeTab === 'inversiones'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
             }`}
           >
             📈 Inversiones
@@ -141,7 +219,7 @@ export default function Home() {
       </div>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'pagos' && <PagosView />}
         {activeTab === 'ventas' && <VentasView />}
@@ -151,8 +229,9 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 py-6 text-center text-gray-600 text-sm">
-        <p>💡 Nota: Los cálculos de capital consideran pagos y ventas desde el 04/11/2025</p>
+      <footer className="mt-16 py-8 text-center border-t border-gray-200 bg-white/50 backdrop-blur-sm">
+        <p className="text-gray-600 text-sm font-medium">💡 Los cálculos de capital consideran pagos y ventas desde el 04/11/2025</p>
+        <p className="text-gray-400 text-xs mt-2">© 2025 Gestor Capital Julieta Joyas</p>
       </footer>
     </div>
   );

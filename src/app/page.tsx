@@ -26,6 +26,7 @@ export default function Home() {
     }
   }, []);
 
+  // Add a console log to debug the response from the sync status API
   const loadLastUpdate = (token: string) => {
     fetch('/api/sync/status', {
       headers: {
@@ -41,6 +42,7 @@ export default function Home() {
         return res.json();
       })
       .then(data => {
+        console.log('Respuesta de /api/sync/status:', data); // Debugging response
         if (data && data.ultimaSincronizacion) {
           setLastUpdate(data.ultimaSincronizacion);
         }
@@ -109,7 +111,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
-                💎 Gestor Capital Julieta Joyas
+                Gestor Capital Julieta Joyas 💎
               </h1>
               <p className="text-sm text-gray-600 mt-1">Por Leandro Viscolungo</p>
               {lastUpdate && (

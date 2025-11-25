@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { validateAuth } from '@/lib/validateAuth';
 
 export async function GET(request: NextRequest) {
@@ -55,24 +55,24 @@ export async function GET(request: NextRequest) {
       23, 59, 59, 999
     ));
     
-    console.log('📅 Cálculo semanal (ÚLTIMA SEMANA COMPLETA):', {
+    /* console.log('📅 Cálculo semanal (ÚLTIMA SEMANA COMPLETA):', {
       hoy: hoy.toISOString(),
       diaSemana,
       diasHastaLunesPasado,
       inicioSemana: inicioSemana.toISOString(),
       finSemana: finSemana.toISOString(),
       rangoLegible: `${fechaLunesPasado.toLocaleDateString()} al ${fechaDomingoPasado.toLocaleDateString()}`
-    });
+    }); */
     
     // Debug: Ver todos los gastos confirmados
     const todosGastos = await prisma.gasto.findMany({
       where: { confirmado: true },
       select: { id: true, descripcion: true, monto: true, fecha: true, confirmado: true }
     });
-    console.log('🔍 Todos los gastos confirmados:', todosGastos.map((g: any) => ({
+    /* //console.log('🔍 Todos los gastos confirmados:', todosGastos.map((g: any) => ({
       ...g,
       fecha: g.fecha.toISOString()
-    })));
+    }))); */
     
     // Debug: Ver qué gastos cumplen el filtro semanal
     const gastosSemanalesDebug = await prisma.gasto.findMany({
@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
       },
       select: { id: true, descripcion: true, monto: true, fecha: true }
     });
-    console.log('📊 Gastos en última semana completa:', gastosSemanalesDebug.map((g: any) => ({
+   /*  console.log('📊 Gastos en última semana completa:', gastosSemanalesDebug.map((g: any) => ({
       ...g,
       fecha: g.fecha.toISOString()
-    })));
+    }))); */
     
     // Filtros de fecha personalizados (si se proporcionan)
     const wherePersonalizado = fechaInicio && fechaFin ? {
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
           fecha: whereSemana
         }
       }).then((result: any) => {
-        console.log('💰 Gastos última semana completa:', result);
+        //console.log('💰 Gastos última semana completa:', result);
         return result;
       }),
       

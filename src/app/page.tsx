@@ -163,6 +163,17 @@ export default function Home() {
     setLastUpdate(fecha);
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Configurar un intervalo para actualizar el estado de sincronización periódicamente
+      const syncInterval = setInterval(() => {
+        fetchSyncStatus(sessionToken || '');
+      }, 30000); // Actualizar cada 30 segundos
+
+      return () => clearInterval(syncInterval); // Limpiar el intervalo al desmontar
+    }
+  }, [isAuthenticated, sessionToken]);
+
   if (!isAuthenticated) {
     return <LoginForm onLogin={handleLogin} />;
   }

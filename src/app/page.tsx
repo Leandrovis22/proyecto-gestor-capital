@@ -96,7 +96,7 @@ export default function Home() {
                 Gestor Capital Julieta Joyas Web 💎
               </h1>
               {lastUpdate && (
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-md text-gray-500 mt-2">
                   ⏱️ Última actualización: {formatDateTime(lastUpdate)}
                 </p>
               )}

@@ -124,7 +124,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
 
     pagosFiltrados.forEach(pago => {
       const monto = parseFloat(pago.monto);
-      const tipoLower = pago.tipoPago.toLowerCase().trim();
+      const tipoLower = pago.tipoPago ? pago.tipoPago.toLowerCase().trim() : '';
 
       // Buscar "osv" en el tipo (para cualquier variante de Osvaldo)
       if (tipoLower.includes('osv')) {

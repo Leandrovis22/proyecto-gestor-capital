@@ -25,7 +25,13 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
   // Form state
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(() => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [confirmado, setConfirmado] = useState(true);
 
   useEffect(() => {
@@ -48,7 +54,13 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
   const resetForm = () => {
     setDescripcion('');
     setMonto('');
-    setFecha(new Date().toISOString().split('T')[0]);
+    setFecha(() => {
+      const hoy = new Date();
+      const year = hoy.getFullYear();
+      const month = String(hoy.getMonth() + 1).padStart(2, '0');
+      const day = String(hoy.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    });
     setConfirmado(true);
     setIsAdding(false);
     setEditingId(null);

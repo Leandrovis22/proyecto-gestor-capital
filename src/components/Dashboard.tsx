@@ -53,6 +53,15 @@ interface DashboardProps {
 export default function Dashboard({ refreshKey, onUpdate }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedSections, setExpandedSections] = useState<{
+    capitalSemanaActual: boolean;
+    capitalSemana: boolean;
+    capital: boolean;
+  }>({
+    capitalSemanaActual: true,
+    capitalSemana: false,
+    capital: false,
+  });
 
   useEffect(() => {
     fetchData();
@@ -114,155 +123,182 @@ export default function Dashboard({ refreshKey, onUpdate }: DashboardProps) {
     return `${day}/${month}/${year}`;
   };
 
+  const toggleSection = (section: 'capitalSemanaActual' | 'capitalSemana' | 'capital') => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   return (
     <div className="space-y-8">
-
       {/* Sección: Esta Semana */}
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <button
+          onClick={() => toggleSection('capitalSemanaActual')}
+          className="w-full text-left px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg font-semibold text-blue-700"
+        >
           📅 Esta Semana
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
-            data.capitalSemanaActual.total >= 0 ? 'border-green-500' : 'border-red-500'
-          }`}>
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Semanal</h3>
-            <p className={`text-4xl font-bold ${
-              data.capitalSemanaActual.total >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {formatMoney(data.capitalSemanaActual.total)}
-            </p>
-          </div>
+        </button>
+        {expandedSections.capitalSemanaActual && (
+          <div className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
+                data.capitalSemanaActual.total >= 0 ? 'border-green-500' : 'border-red-500'
+              }`}>
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Semanal</h3>
+                <p className={`text-4xl font-bold ${
+                  data.capitalSemanaActual.total >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatMoney(data.capitalSemanaActual.total)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
-            <p className="text-4xl font-bold text-purple-600">
-              {formatMoney(data.capitalSemanaActual.inversiones)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
+                <p className="text-4xl font-bold text-purple-600">
+                  {formatMoney(data.capitalSemanaActual.inversiones)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos</h3>
-            <p className="text-4xl font-bold text-green-600">
-              {formatMoney(data.capitalSemanaActual.pagos)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos</h3>
+                <p className="text-4xl font-bold text-green-600">
+                  {formatMoney(data.capitalSemanaActual.pagos)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas</h3>
-            <p className="text-4xl font-bold text-orange-600">
-              {formatMoney(data.capitalSemanaActual.ventas)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas</h3>
+                <p className="text-4xl font-bold text-orange-600">
+                  {formatMoney(data.capitalSemanaActual.ventas)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
-            <p className="text-4xl font-bold text-red-600">
-              {formatMoney(data.capitalSemanaActual.gastos)}
-            </p>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
+                <p className="text-4xl font-bold text-red-600">
+                  {formatMoney(data.capitalSemanaActual.gastos)}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Sección: Semana Pasada */}
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <button
+          onClick={() => toggleSection('capitalSemana')}
+          className="w-full text-left px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg font-semibold text-blue-700"
+        >
           📅 Semana Pasada
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
-            data.capitalSemana.total >= 0 ? 'border-green-500' : 'border-red-500'
-          }`}>
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Semanal</h3>
-            <p className={`text-4xl font-bold ${
-              data.capitalSemana.total >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {formatMoney(data.capitalSemana.total)}
-            </p>
-          </div>
+        </button>
+        {expandedSections.capitalSemana && (
+          <div className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
+                data.capitalSemana.total >= 0 ? 'border-green-500' : 'border-red-500'
+              }`}>
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Semanal</h3>
+                <p className={`text-4xl font-bold ${
+                  data.capitalSemana.total >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatMoney(data.capitalSemana.total)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
-            <p className="text-4xl font-bold text-purple-600">
-              {formatMoney(data.capitalSemana.inversiones)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
+                <p className="text-4xl font-bold text-purple-600">
+                  {formatMoney(data.capitalSemana.inversiones)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos</h3>
-            <p className="text-4xl font-bold text-green-600">
-              {formatMoney(data.capitalSemana.pagos)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos</h3>
+                <p className="text-4xl font-bold text-green-600">
+                  {formatMoney(data.capitalSemana.pagos)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas</h3>
-            <p className="text-4xl font-bold text-orange-600">
-              {formatMoney(data.capitalSemana.ventas)}
-            </p>
-          </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas</h3>
+                <p className="text-4xl font-bold text-orange-600">
+                  {formatMoney(data.capitalSemana.ventas)}
+                </p>
+              </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
-            <p className="text-4xl font-bold text-red-600">
-              {formatMoney(data.capitalSemana.gastos)}
-            </p>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
+                <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
+                <p className="text-4xl font-bold text-red-600">
+                  {formatMoney(data.capitalSemana.gastos)}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Sección: Totales */}
+      {/* Sección: Total Histórico */}
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          📊 Total Historico
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
-          data.capital.total >= 0 ? 'border-green-500' : 'border-red-500'
-        }`}>
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Total</h3>
-          <p className={`text-4xl font-bold ${
-            data.capital.total >= 0 ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {formatMoney(data.capital.total)}
-          </p>
-        </div>
+        <button
+          onClick={() => toggleSection('capital')}
+          className="w-full text-left px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg font-semibold text-blue-700"
+        >
+          📊 Total Histórico
+        </button>
+        {expandedSections.capital && (
+          <div className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
+              data.capital.total >= 0 ? 'border-green-500' : 'border-red-500'
+            }`}>
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Total</h3>
+              <p className={`text-4xl font-bold ${
+                data.capital.total >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatMoney(data.capital.total)}
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Saldo Deudores</h3>
-          <p className="text-4xl font-bold text-blue-600">
-            {formatMoney(data.saldoDeudores)}
-          </p>
-        </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-200">
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Saldo Deudores</h3>
+              <p className="text-4xl font-bold text-blue-600">
+                {formatMoney(data.saldoDeudores)}
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
-          <p className="text-4xl font-bold text-purple-600">
-            {formatMoney(data.capital.inversiones)}
-          </p>
-        </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
+              <p className="text-4xl font-bold text-purple-600">
+                {formatMoney(data.capital.inversiones)}
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos (desde 04/11)</h3>
-          <p className="text-4xl font-bold text-green-600">
-            {formatMoney(data.capital.pagos)}
-          </p>
-        </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos (desde 04/11)</h3>
+              <p className="text-4xl font-bold text-green-600">
+                {formatMoney(data.capital.pagos)}
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas (desde 04/11)</h3>
-          <p className="text-4xl font-bold text-orange-600">
-            {formatMoney(data.capital.ventas)}
-          </p>
-        </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas (desde 04/11)</h3>
+              <p className="text-4xl font-bold text-orange-600">
+                {formatMoney(data.capital.ventas)}
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
-          <p className="text-4xl font-bold text-red-600">
-            {formatMoney(data.capital.gastos)}
-          </p>
-        </div>
-        </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
+              <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
+              <p className="text-4xl font-bold text-red-600">
+                {formatMoney(data.capital.gastos)}
+              </p>
+            </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Últimos pagos y ventas */}

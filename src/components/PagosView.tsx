@@ -25,9 +25,20 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [clientes, setClientes] = useState<Map<string, Cliente>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [usarHoy, setUsarHoy] = useState(true);
 
   useEffect(() => {
     fetchData();
+    // Inicializar fecha de hoy en formato YYYY-MM-DD
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${year}-${month}-${day}`;
+    setFechaInicio(fechaHoy);
+    setFechaFin(fechaHoy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
@@ -67,6 +78,78 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
     return `${day}/${month}/${year}`;
   };
 
+  const parseDateUTC = (dateString: string) => {
+    // Parsear fecha ignorando zona horaria, tratarla como está
+    const date = new Date(dateString);
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  };
+
+  const calcularEstadisticasPeriodo = () => {
+    let pagosFiltrados = pagos;
+
+    if (usarHoy) {
+      // Solo pagos de hoy
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const manana = new Date(hoy);
+      manana.setDate(hoy.getDate() + 1);
+
+      pagosFiltrados = pagos.filter(p => {
+        const fechaPago = parseDateUTC(p.fechaPago);
+        return fechaPago >= hoy && fechaPago < manana;
+      });
+    } else if (fechaInicio && fechaFin) {
+      // Pagos en el rango de fechas - parsear como fecha local sin conversión
+      const [yearInicio, mesInicio, diaInicio] = fechaInicio.split('-').map(Number);
+      const inicio = new Date(yearInicio, mesInicio - 1, diaInicio, 0, 0, 0, 0);
+      
+      const [yearFin, mesFin, diaFin] = fechaFin.split('-').map(Number);
+      const fin = new Date(yearFin, mesFin - 1, diaFin, 23, 59, 59, 999);
+
+      pagosFiltrados = pagos.filter(p => {
+        const fechaPago = parseDateUTC(p.fechaPago);
+        return fechaPago >= inicio && fechaPago <= fin;
+      });
+    }
+
+    let totalOsvaldo = 0;
+    let totalNoe = 0;
+    let totalEfectivo = 0;
+    let totalOtros = 0;
+
+    pagosFiltrados.forEach(pago => {
+      const monto = parseFloat(pago.monto);
+      const tipoLower = pago.tipoPago.toLowerCase().trim();
+
+      // Buscar "osv" en el tipo (para cualquier variante de Osvaldo)
+      if (tipoLower.includes('osv')) {
+        totalOsvaldo += monto;
+      } 
+      // Buscar "noe" en el tipo (para cualquier variante de Noelia)
+      else if (tipoLower.includes('noe')) {
+        totalNoe += monto;
+      } 
+      // Buscar "efe" para efectivo
+      else if (tipoLower.includes('efe')) {
+        totalEfectivo += monto;
+      } 
+      // Todo lo demás va a otros
+      else {
+        totalOtros += monto;
+      }
+    });
+
+    return {
+      totalOsvaldo,
+      totalNoe,
+      totalEfectivo,
+      totalOtros,
+      cantidadPagos: pagosFiltrados.length
+    };
+  };
+
+  const stats = calcularEstadisticasPeriodo();
+
   const totalPagos = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
 
   // Calcular pagos de esta semana completa (lunes a domingo actual)
@@ -103,7 +186,107 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
 
   return (
     <div className="space-y-8">
-      {/* Estadísticas */}
+      {/* Filtros de fecha */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">📅 Filtrar por Fecha</h3>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="usarHoy"
+              checked={usarHoy}
+              onChange={(e) => setUsarHoy(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="usarHoy" className="text-sm font-medium text-gray-700">
+              Solo hoy
+            </label>
+          </div>
+          {!usarHoy && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Desde</label>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Hasta</label>
+                <input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Estadísticas por tipo de pago */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Osvaldo */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Osvaldo</h4>
+            
+          </div>
+          <p className="text-3xl font-bold text-blue-700">{formatMoney(stats.totalOsvaldo.toString())}</p>
+        </div>
+
+        {/* Noe */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Noe</h4>
+            
+          </div>
+          <p className="text-3xl font-bold text-purple-700">{formatMoney(stats.totalNoe.toString())}</p>
+        </div>
+
+        {/* Efectivo */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Efectivo</h4>
+            <span className="text-3xl">💵</span>
+          </div>
+          <p className="text-3xl font-bold text-green-700">{formatMoney(stats.totalEfectivo.toString())}</p>
+        </div>
+
+        {/* Otros */}
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Otros/Sin Cat.</h4>
+            <span className="text-3xl">❓</span>
+          </div>
+          <p className="text-3xl font-bold text-orange-700">{formatMoney(stats.totalOtros.toString())}</p>
+        </div>
+      </div>
+
+      {/* Total del período */}
+      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-8 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow duration-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-3">
+              {usarHoy ? 'Total de Hoy' : 'Total del Período'}
+            </h3>
+            <p className="text-5xl font-bold text-indigo-700">
+              {formatMoney((stats.totalOsvaldo + stats.totalNoe + stats.totalEfectivo + stats.totalOtros).toString())}
+            </p>
+            <div className="mt-4">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
+                📊 {stats.cantidadPagos} pagos
+              </span>
+            </div>
+          </div>
+          <div className="text-6xl">💰</div>
+        </div>
+      </div>
+
+      {/* Estadísticas totales */}
       <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-8 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
         <div className="flex items-center justify-between">
           <div>

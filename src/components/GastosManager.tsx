@@ -21,8 +21,8 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState<'todos' | 'semana' | 'mes'>('todos');
 
-  // Form state
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState(() => {
@@ -36,14 +36,16 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
 
   useEffect(() => {
     fetchGastos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   const fetchGastos = async () => {
     try {
       const response = await authFetch('/api/gastos');
       const data = await response.json();
-      setGastos(Array.isArray(data) ? data : []);
+      const gastosOrdenados = Array.isArray(data) 
+        ? data.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+        : [];
+      setGastos(gastosOrdenados);
     } catch (error) {
       console.error('Error fetching gastos:', error);
     } finally {
@@ -66,9 +68,7 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
     setEditingId(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!descripcion.trim() || !monto || parseFloat(monto) <= 0) {
       alert('Por favor completa todos los campos correctamente');
       return;
@@ -78,13 +78,16 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
       const url = editingId ? `/api/gastos/${editingId}` : '/api/gastos';
       const method = editingId ? 'PUT' : 'POST';
 
+      // Enviar fecha en formato ISO sin conversión de zona horaria
+      const fechaISO = `${fecha}T12:00:00.000Z`;
+
       const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           descripcion,
           monto: parseFloat(monto),
-          fecha: new Date(fecha),
+          fecha: fechaISO,
           confirmado,
         }),
       });
@@ -168,11 +171,34 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
     });
   };
 
-  const totalConfirmados = gastos
+  const filtrarGastos = () => {
+    const ahora = new Date();
+    
+    if (filtro === 'semana') {
+      const inicioSemana = new Date(ahora);
+      const dia = inicioSemana.getDay();
+      const diff = dia === 0 ? -6 : 1 - dia;
+      inicioSemana.setDate(inicioSemana.getDate() + diff);
+      inicioSemana.setHours(0, 0, 0, 0);
+      
+      return gastos.filter(g => new Date(g.fecha) >= inicioSemana);
+    }
+    
+    if (filtro === 'mes') {
+      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+      return gastos.filter(g => new Date(g.fecha) >= inicioMes);
+    }
+    
+    return gastos;
+  };
+
+  const gastosFiltrados = filtrarGastos();
+
+  const totalConfirmados = gastosFiltrados
     .filter((g) => g.confirmado)
     .reduce((sum, g) => sum + parseFloat(g.monto), 0);
 
-  const totalPorConfirmar = gastos
+  const totalPorConfirmar = gastosFiltrados
     .filter((g) => !g.confirmado)
     .reduce((sum, g) => sum + parseFloat(g.monto), 0);
 
@@ -190,7 +216,42 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
 
   return (
     <div className="space-y-8">
-      {/* Estadísticas */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">🔍 Filtrar por período</h3>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => setFiltro('todos')}
+            className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-sm ${
+              filtro === 'todos'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📅 Todos
+          </button>
+          <button
+            onClick={() => setFiltro('semana')}
+            className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-sm ${
+              filtro === 'semana'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📆 Esta semana
+          </button>
+          <button
+            onClick={() => setFiltro('mes')}
+            className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-sm ${
+              filtro === 'mes'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🗓️ Este mes
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-lg p-8 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between">
@@ -213,7 +274,6 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
         </div>
       </div>
 
-      {/* Botón agregar */}
       {!isAdding && (
         <button
           onClick={() => setIsAdding(true)}
@@ -223,13 +283,12 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
         </button>
       )}
 
-      {/* Formulario */}
       {isAdding && (
         <div className="bg-white rounded-xl shadow-lg p-8 border-t-4 border-blue-500">
           <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             {editingId ? '✏️ Editar Gasto' : '➕ Nuevo Gasto'}
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Descripción
@@ -240,7 +299,6 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
                 onChange={(e) => setDescripcion(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="Ej: Pago de alquiler"
-                required
               />
             </div>
 
@@ -256,7 +314,6 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
                   onChange={(e) => setMonto(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="0.00"
-                  required
                 />
               </div>
 
@@ -269,7 +326,6 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  required
                 />
               </div>
             </div>
@@ -289,31 +345,40 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
 
             <div className="flex gap-3 pt-4">
               <button
-                type="submit"
+                onClick={handleSubmit}
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-md"
               >
                 {editingId ? 'Actualizar' : 'Guardar'}
               </button>
               <button
-                type="button"
                 onClick={resetForm}
                 className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
               >
                 Cancelar
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* Lista de gastos */}
       <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
-        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">📋 Lista de Gastos</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          📋 Lista de Gastos
+          {filtro !== 'todos' && (
+            <span className="text-base font-normal text-gray-500">
+              ({gastosFiltrados.length} de {gastos.length})
+            </span>
+          )}
+        </h3>
         <div className="overflow-x-auto">
-          {gastos.length === 0 ? (
+          {gastosFiltrados.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📭</div>
-              <p className="text-gray-500 text-lg font-medium">No hay gastos registrados</p>
+              <p className="text-gray-500 text-lg font-medium">
+                {filtro === 'todos' 
+                  ? 'No hay gastos registrados' 
+                  : `No hay gastos en ${filtro === 'semana' ? 'esta semana' : 'este mes'}`}
+              </p>
             </div>
           ) : (
             <table className="min-w-full">
@@ -327,7 +392,7 @@ export default function GastosManager({ refreshKey }: GastosManagerProps) {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {gastos.map((gasto) => (
+                {gastosFiltrados.map((gasto) => (
                   <tr 
                     key={gasto.id} 
                     className={`border-b border-gray-100 hover:bg-gradient-to-r transition-colors duration-150 ${

@@ -48,10 +48,9 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            💎 Gestor Capital
+            Gestor Capital
           </h1>
-          <p className="text-lg text-gray-600">Julieta Joyas</p>
-          <p className="text-sm text-gray-500 mt-1">Por Leandro Viscolungo</p>
+          <p className="text-lg text-gray-600">Julieta Joyas 💎</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,13 +97,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             disabled={isLoading}
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            {isLoading ? '🔄 Iniciando sesión...' : '🔓 Iniciar Sesión'}
+            {isLoading ? '🔄 Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-gray-500">
-          <p>🔒 Acceso protegido</p>
-        </div>
       </div>
     </div>
   );

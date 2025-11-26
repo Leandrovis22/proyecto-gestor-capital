@@ -18,6 +18,13 @@ interface DashboardData {
     ventas: number;
     gastos: number;
   };
+  capitalSemanaActual: {
+    total: number;
+    inversiones: number;
+    pagos: number;
+    ventas: number;
+    gastos: number;
+  };
   saldoDeudores: number;
   ultimasPagos: Array<{
     id: string;
@@ -38,19 +45,28 @@ interface DashboardData {
   fechaActualizacion: string;
 }
 
-export default function Dashboard() {
+interface DashboardProps {
+  refreshKey?: number;
+  onUpdate?: (fecha: string) => void;
+}
+
+export default function Dashboard({ refreshKey, onUpdate }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const fetchData = async () => {
     try {
       const response = await authFetch('/api/dashboard');
       const json = await response.json();
       setData(json);
+      if (onUpdate && json.fechaActualizacion) {
+        onUpdate(json.fechaActualizacion);
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -100,6 +116,54 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+
+      {/* Sección: Esta Semana */}
+      <div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          📅 Esta Semana
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
+            data.capitalSemanaActual.total >= 0 ? 'border-green-500' : 'border-red-500'
+          }`}>
+            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Capital Semanal</h3>
+            <p className={`text-4xl font-bold ${
+              data.capitalSemanaActual.total >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatMoney(data.capitalSemanaActual.total)}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
+            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
+            <p className="text-4xl font-bold text-purple-600">
+              {formatMoney(data.capitalSemanaActual.inversiones)}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Pagos</h3>
+            <p className="text-4xl font-bold text-green-600">
+              {formatMoney(data.capitalSemanaActual.pagos)}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Ventas</h3>
+            <p className="text-4xl font-bold text-orange-600">
+              {formatMoney(data.capitalSemanaActual.ventas)}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
+            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
+            <p className="text-4xl font-bold text-red-600">
+              {formatMoney(data.capitalSemanaActual.gastos)}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Sección: Semana Pasada */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -150,7 +214,7 @@ export default function Dashboard() {
       {/* Sección: Totales */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          📊 Totales
+          📊 Total Historico
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
@@ -255,10 +319,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Footer info */}
-      <div className="text-center text-sm text-gray-500 py-4">
-        <p className="font-medium">Última actualización: {formatDate(data.fechaActualizacion)}</p>
-      </div>
     </div>
   );
 }

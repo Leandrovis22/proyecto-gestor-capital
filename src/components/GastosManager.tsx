@@ -12,7 +12,11 @@ interface Gasto {
   createdAt: string;
 }
 
-export default function GastosManager() {
+interface GastosManagerProps {
+  refreshKey?: number;
+}
+
+export default function GastosManager({ refreshKey }: GastosManagerProps) {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -26,7 +30,8 @@ export default function GastosManager() {
 
   useEffect(() => {
     fetchGastos();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const fetchGastos = async () => {
     try {

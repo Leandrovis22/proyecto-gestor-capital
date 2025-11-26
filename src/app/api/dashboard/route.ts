@@ -227,6 +227,59 @@ export async function GET(request: NextRequest) {
     const gastosSem = Number(gastosSemana._sum.monto || 0);
     const capitalSemana = inversionesSem + pagosSem - ventasSem - gastosSem;
     
+    // Calcular fechas de la semana actual (lunes a domingo)
+    const diasHastaLunesActual = diaSemana === 0 ? 6 : diaSemana - 1;
+    const fechaLunesActual = new Date(hoy);
+    fechaLunesActual.setDate(hoy.getDate() - diasHastaLunesActual);
+
+    const fechaDomingoActual = new Date(fechaLunesActual);
+    fechaDomingoActual.setDate(fechaLunesActual.getDate() + 6);
+
+    const inicioSemanaActual = new Date(Date.UTC(
+      fechaLunesActual.getFullYear(),
+      fechaLunesActual.getMonth(),
+      fechaLunesActual.getDate(),
+      0, 0, 0, 0
+    ));
+
+    const finSemanaActual = new Date(Date.UTC(
+      fechaDomingoActual.getFullYear(),
+      fechaDomingoActual.getMonth(),
+      fechaDomingoActual.getDate(),
+      23, 59, 59, 999
+    ));
+
+    // Calcular métricas de la semana actual
+    const [
+      inversionesSemanaActual,
+      pagosSemanaActual,
+      ventasSemanaActual,
+      gastosSemanaActual
+    ] = await Promise.all([
+      prisma.inversion.aggregate({
+        _sum: { monto: true },
+        where: { fecha: { gte: inicioSemanaActual, lte: finSemanaActual } }
+      }),
+      prisma.pago.aggregate({
+        _sum: { monto: true },
+        where: { fechaPago: { gte: inicioSemanaActual, lte: finSemanaActual } }
+      }),
+      prisma.venta.aggregate({
+        _sum: { totalVenta: true },
+        where: { fechaVenta: { gte: inicioSemanaActual, lte: finSemanaActual } }
+      }),
+      prisma.gasto.aggregate({
+        _sum: { monto: true },
+        where: { confirmado: true, fecha: { gte: inicioSemanaActual, lte: finSemanaActual } }
+      })
+    ]);
+
+    const inversionesAct = Number(inversionesSemanaActual._sum.monto || 0);
+    const pagosAct = Number(pagosSemanaActual._sum.monto || 0);
+    const ventasAct = Number(ventasSemanaActual._sum.totalVenta || 0);
+    const gastosAct = Number(gastosSemanaActual._sum.monto || 0);
+    const capitalSemanaActual = inversionesAct + pagosAct - ventasAct - gastosAct;
+
     return NextResponse.json({
       capital: {
         total: capital,
@@ -245,6 +298,17 @@ export async function GET(request: NextRequest) {
         rangoFechas: {
           inicio: inicioSemana,
           fin: finSemana
+        }
+      },
+      capitalSemanaActual: {
+        total: capitalSemanaActual,
+        inversiones: inversionesAct,
+        pagos: pagosAct,
+        ventas: ventasAct,
+        gastos: gastosAct,
+        rangoFechas: {
+          inicio: inicioSemanaActual,
+          fin: finSemanaActual
         }
       },
       saldoDeudores: Number(totalSaldoDeudores._sum.saldoAPagar || 0),

@@ -15,6 +15,7 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     // Verificar si hay token de sesión guardado
@@ -22,38 +23,14 @@ export default function Home() {
     if (savedToken) {
       setSessionToken(savedToken);
       setIsAuthenticated(true);
-      loadLastUpdate(savedToken);
+      // Eliminar llamada redundante a loadLastUpdate
     }
   }, []);
-
-  // Add a console log to debug the response from the sync status API
-  const loadLastUpdate = (token: string) => {
-    fetch('/api/sync/status', {
-      headers: {
-        'X-Session-Token': token
-      }
-    })
-      .then(res => {
-        if (res.status === 401) {
-          // Token inválido o expirado, cerrar sesión
-          handleLogout();
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('Respuesta de /api/sync/status:', data); // Debugging response
-        if (data && data.ultimaSincronizacion) {
-          setLastUpdate(data.ultimaSincronizacion);
-        }
-      })
-      .catch(err => console.error('Error obteniendo estado:', err));
-  };
 
   const handleLogin = (token: string) => {
     setSessionToken(token);
     setIsAuthenticated(true);
-    loadLastUpdate(token);
+    // Eliminar referencia a loadLastUpdate
   };
 
   const handleLogout = () => {
@@ -92,7 +69,8 @@ export default function Home() {
       
       if (data.exito) {
         alert(`✅ Sincronización completada\n\nArchivos actualizados: ${data.archivosActualizados}\nArchivos omitidos: ${data.archivosOmitidos}\nDuración: ${data.duracionSegundos}s`);
-        window.location.reload();
+        // Refrescar la última actualización y forzar recarga de componentes
+        setRefreshKey(prev => prev + 1);
       } else {
         alert('❌ Error en sincronización: ' + data.error);
       }
@@ -103,6 +81,10 @@ export default function Home() {
     }
   };
 
+  const handleUpdateFromDashboard = (fecha: string) => {
+    setLastUpdate(fecha);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
@@ -111,11 +93,10 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
-                Gestor Capital Julieta Joyas 💎
+                Gestor Capital Julieta Joyas Web 💎
               </h1>
-              <p className="text-sm text-gray-600 mt-1">Por Leandro Viscolungo</p>
               {lastUpdate && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-2">
                   ⏱️ Última actualización: {formatDateTime(lastUpdate)}
                 </p>
               )}
@@ -222,18 +203,18 @@ export default function Home() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'pagos' && <PagosView />}
-        {activeTab === 'ventas' && <VentasView />}
-        {activeTab === 'deudores' && <DeudoresView />}
-        {activeTab === 'gastos' && <GastosManager />}
-        {activeTab === 'inversiones' && <InversionesManager />}
+        {activeTab === 'dashboard' && <Dashboard refreshKey={refreshKey} onUpdate={handleUpdateFromDashboard} />}
+        {activeTab === 'pagos' && <PagosView refreshKey={refreshKey} />}
+        {activeTab === 'ventas' && <VentasView refreshKey={refreshKey} />}
+        {activeTab === 'deudores' && <DeudoresView refreshKey={refreshKey} />}
+        {activeTab === 'gastos' && <GastosManager refreshKey={refreshKey} />}
+        {activeTab === 'inversiones' && <InversionesManager refreshKey={refreshKey} />}
       </main>
 
       {/* Footer */}
       <footer className="mt-16 py-8 text-center border-t border-gray-200 bg-white/50 backdrop-blur-sm">
         <p className="text-gray-600 text-sm font-medium">💡 Los cálculos de capital consideran pagos y ventas desde el 04/11/2025</p>
-        <p className="text-gray-400 text-xs mt-2">© 2025 Gestor Capital Julieta Joyas</p>
+        <p className="text-gray-400 text-xs mt-2">© 2025 Gestor Capital por Leandro Viscolungo</p>
       </footer>
     </div>
   );

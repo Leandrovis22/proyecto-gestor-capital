@@ -11,7 +11,11 @@ interface Inversion {
   createdAt: string;
 }
 
-export default function InversionesManager() {
+interface InversionesManagerProps {
+  refreshKey?: number;
+}
+
+export default function InversionesManager({ refreshKey }: InversionesManagerProps) {
   const [inversiones, setInversiones] = useState<Inversion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -24,7 +28,8 @@ export default function InversionesManager() {
 
   useEffect(() => {
     fetchInversiones();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const fetchInversiones = async () => {
     try {

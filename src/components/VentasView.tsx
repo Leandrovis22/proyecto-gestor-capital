@@ -16,14 +16,19 @@ interface Cliente {
   nombre: string;
 }
 
-export default function VentasView() {
+interface VentasViewProps {
+  refreshKey?: number;
+}
+
+export default function VentasView({ refreshKey }: VentasViewProps) {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Map<string, Cliente>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const fetchData = async () => {
     try {
@@ -63,29 +68,23 @@ export default function VentasView() {
 
   const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
 
-  // Calcular ventas de última semana completa (lunes a domingo anterior)
+  // Calcular ventas de esta semana completa (lunes a domingo actual)
   const hoy = new Date();
   const diaSemana = hoy.getDay();
-  
-  // Calcular días hasta el lunes pasado
-  let diasHastaLunesPasado;
-  if (diaSemana === 0) {
-    diasHastaLunesPasado = 7;
-  } else {
-    diasHastaLunesPasado = diaSemana + 6;
-  }
-  
-  const fechaLunesPasado = new Date(hoy);
-  fechaLunesPasado.setDate(hoy.getDate() - diasHastaLunesPasado);
-  fechaLunesPasado.setHours(0, 0, 0, 0);
-  
-  const fechaDomingoPasado = new Date(fechaLunesPasado);
-  fechaDomingoPasado.setDate(fechaLunesPasado.getDate() + 6);
-  fechaDomingoPasado.setHours(23, 59, 59, 999);
+
+  // Calcular días hasta el lunes actual
+  const diasHastaLunesActual = diaSemana === 0 ? 6 : diaSemana - 1;
+  const fechaLunesActual = new Date(hoy);
+  fechaLunesActual.setDate(hoy.getDate() - diasHastaLunesActual);
+  fechaLunesActual.setHours(0, 0, 0, 0);
+
+  const fechaDomingoActual = new Date(fechaLunesActual);
+  fechaDomingoActual.setDate(fechaLunesActual.getDate() + 6);
+  fechaDomingoActual.setHours(23, 59, 59, 999);
 
   const ventasSemana = ventas.filter(v => {
     const fechaVenta = new Date(v.fechaVenta);
-    return fechaVenta >= fechaLunesPasado && fechaVenta <= fechaDomingoPasado;
+    return fechaVenta >= fechaLunesActual && fechaVenta <= fechaDomingoActual;
   });
   const totalVentasSemana = ventasSemana.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
 
@@ -111,7 +110,7 @@ export default function VentasView() {
             <p className="text-5xl font-bold text-purple-600">{formatMoney(totalVentas.toString())}</p>
             <div className="mt-4 flex items-center gap-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold">
-                📊 {ventasSemana.length} ventas semana pasada
+                📊 {ventasSemana.length} ventas esta semana
               </span>
               <span className="text-lg font-bold text-purple-700">
                 {formatMoney(totalVentasSemana.toString())}
@@ -159,7 +158,7 @@ export default function VentasView() {
                       {cambioFecha && index > 0 && (
                         <tr>
                           <td colSpan={4} className="px-6 py-2">
-                            <div className="border-t-2 border-purple-200"></div>
+                            <div className="border-t-4 border-blue-800"></div>
                           </td>
                         </tr>
                       )}

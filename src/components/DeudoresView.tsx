@@ -10,13 +10,18 @@ interface Cliente {
   ultimaModificacion: string;
 }
 
-export default function DeudoresView() {
+interface DeudoresViewProps {
+  refreshKey?: number;
+}
+
+export default function DeudoresView({ refreshKey }: DeudoresViewProps) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchClientes();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const fetchClientes = async () => {
     try {

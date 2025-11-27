@@ -31,10 +31,18 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     // Pequeño debounce: esperar un momento antes de recargar para
     // evitar que una petición concurrente (p.ej. durante el login)
     // interrumpa el flujo y fuerce una recarga innecesaria.
+    // En lugar de recargar la página directamente, emitir un evento que
+    // la aplicación puede escuchar y manejar (p.ej. mostrar un mensaje
+    // y redirigir al login). Evita recargas inesperadas por condiciones
+    // de carrera durante el login.
     setTimeout(() => {
-      // Si durante el debounce se guardó un token (login exitoso), no recargar.
       if (!sessionStorage.getItem('sessionToken')) {
-        window.location.reload();
+        try {
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
+        } catch (e) {
+          // Fallback: si CustomEvent no está disponible, recargar.
+          window.location.reload();
+        }
       }
     }, 300);
     throw new Error('Sesión expirada');

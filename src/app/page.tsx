@@ -41,6 +41,19 @@ export default function Home() {
     }
   }, []);
 
+  // Escuchar evento global cuando la sesión expire (emitted desde authFetch)
+  useEffect(() => {
+    const handler = () => {
+      // Remover token y actualizar estado sin recargar la página
+      sessionStorage.removeItem('sessionToken');
+      setSessionToken(null);
+      setIsAuthenticated(false);
+      addToast({ type: 'error', message: '🔒 Sesión expirada. Por favor inicia sesión de nuevo.' });
+    };
+    window.addEventListener('sessionExpired', handler as EventListener);
+    return () => window.removeEventListener('sessionExpired', handler as EventListener);
+  }, []);
+
   const handleLogin = (token: string) => {
     setSessionToken(token);
     setIsAuthenticated(true);

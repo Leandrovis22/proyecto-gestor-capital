@@ -191,24 +191,9 @@ export default function Dashboard({ refreshKey, onUpdate }: DashboardProps) {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Saldo Deudores</h3>
-          <p className="text-2xl md:text-4xl font-bold text-blue-600">{formatMoney(data.saldoDeudores)}</p>
-        </div>
-
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-200">
           <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones</h3>
           <p className="text-2xl md:text-4xl font-bold text-purple-600">{formatMoney(data.capital.inversiones)}</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones (Por confirmar)</h3>
-          <p className="text-2xl md:text-4xl font-bold text-yellow-600">{formatMoney(data.capital.inversionesNoConfirmadas || 0)}</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-200">
-          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos (Por confirmar)</h3>
-          <p className="text-2xl md:text-4xl font-bold text-yellow-600">{formatMoney(data.capital.gastosNoConfirmadas || 0)}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
@@ -224,6 +209,16 @@ export default function Dashboard({ refreshKey, onUpdate }: DashboardProps) {
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
           <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos</h3>
           <p className="text-2xl md:text-4xl font-bold text-red-600">{formatMoney(data.capital.gastos)}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-200">
+          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Inversiones (Por confirmar)</h3>
+          <p className="text-2xl md:text-4xl font-bold text-yellow-600">{formatMoney(data.capital.inversionesNoConfirmadas || 0)}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow duration-200">
+          <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Gastos (Por confirmar)</h3>
+          <p className="text-2xl md:text-4xl font-bold text-yellow-600">{formatMoney(data.capital.gastosNoConfirmadas || 0)}</p>
         </div>
         </div>
       </div>

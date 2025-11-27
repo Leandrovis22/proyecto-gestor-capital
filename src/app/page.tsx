@@ -26,6 +26,7 @@ export default function Home() {
   const [toasts, setToasts] = useState<Array<{ id: string; title?: string; message: string; type?: 'info' | 'success' | 'error' | 'warning' }>>([]);
   // Flag para prevenir race conditions durante login
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const loginInProgressRef = useRef(false);
 
   useEffect(() => {
@@ -44,6 +45,9 @@ export default function Home() {
       fetchSyncStatus(savedToken);
     }
   
+    // Marcar verificación de auth como completa inmediatamente
+    setIsCheckingAuth(false);
+    
     // Marcar como inicializado después de un momento
     setTimeout(() => setIsInitializing(false), 150);
   }, []);
@@ -303,6 +307,18 @@ export default function Home() {
       return () => clearInterval(syncInterval); // Limpiar el intervalo al desmontar
     }
   }, [isAuthenticated, sessionToken]);
+
+  // Mostrar loader mientras verifica la autenticación
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginForm onLogin={handleLogin} />;

@@ -12,25 +12,25 @@ export function validateAuth(request: NextRequest): NextResponse | null {
   const sessionToken = request.headers.get('x-session-token');
   const API_KEY = process.env.SYNC_API_KEY;
   
-  console.log('🔍 Validando auth - Bearer:', !!authHeader, 'Session:', !!sessionToken);
+  // debug logs removed to avoid noisy output in production
   
   // Autenticación con Bearer token (interno)
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     if (token === API_KEY) {
-      console.log('✅ Auth válida: Bearer token');
+      // authenticated with bearer token
       return null; // Autenticado
     }
   }
   
   // Autenticación con session token (cliente)
   if (sessionToken && validateSession(sessionToken)) {
-    console.log('✅ Auth válida: Session token');
+    // authenticated with session token
     return null; // Autenticado
   }
   
   // No autorizado
-  console.log('❌ Auth fallida');
+  // authentication failed
   return NextResponse.json(
     { error: 'No autorizado' },
     { status: 401 }

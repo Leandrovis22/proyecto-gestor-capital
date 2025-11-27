@@ -103,7 +103,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       // Pagos en el rango de fechas - parsear como fecha local sin conversión
       const [yearInicio, mesInicio, diaInicio] = fechaInicio.split('-').map(Number);
       const inicio = new Date(yearInicio, mesInicio - 1, diaInicio, 0, 0, 0, 0);
-      
+
       const [yearFin, mesFin, diaFin] = fechaFin.split('-').map(Number);
       const fin = new Date(yearFin, mesFin - 1, diaFin, 23, 59, 59, 999);
 
@@ -130,17 +130,17 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       if (tipoLower.includes('osv')) {
         totalOsvaldo += monto;
         pagosOsvaldo.push(pago);
-      } 
+      }
       // Buscar "noe" en el tipo (para cualquier variante de Noelia)
       else if (tipoLower.includes('noe')) {
         totalNoe += monto;
         pagosNoe.push(pago);
-      } 
+      }
       // Buscar "efe" para efectivo
       else if (tipoLower.includes('efe')) {
         totalEfectivo += monto;
         pagosEfectivo.push(pago);
-      } 
+      }
       // Todo lo demás va a otros
       else {
         totalOtros += monto;
@@ -243,54 +243,52 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       {/* Estadísticas por tipo de pago */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Osvaldo */}
-        <div 
+        <div
           onClick={() => setDetalleVisible(detalleVisible === 'osvaldo' ? null : 'osvaldo')}
-          className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-blue-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Osvaldo</h4>
-            
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Osvaldo</h4>
           </div>
-          <p className="text-3xl font-bold text-blue-700">{formatMoney(stats.totalOsvaldo.toString())}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-blue-700">{formatMoney(stats.totalOsvaldo.toString())}</p>
           <p className="text-xs text-blue-600 mt-2 font-medium">{stats.pagosOsvaldo.length} pagos - Click para ver detalle</p>
         </div>
 
         {/* Noe */}
-        <div 
+        <div
           onClick={() => setDetalleVisible(detalleVisible === 'noe' ? null : 'noe')}
-          className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-purple-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Noe</h4>
-            
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Tra Noe</h4>
           </div>
-          <p className="text-3xl font-bold text-purple-700">{formatMoney(stats.totalNoe.toString())}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-purple-700">{formatMoney(stats.totalNoe.toString())}</p>
           <p className="text-xs text-purple-600 mt-2 font-medium">{stats.pagosNoe.length} pagos - Click para ver detalle</p>
         </div>
 
         {/* Efectivo */}
-        <div 
+        <div
           onClick={() => setDetalleVisible(detalleVisible === 'efectivo' ? null : 'efectivo')}
-          className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Efectivo</h4>
-            <span className="text-3xl">💵</span>
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Efectivo</h4>
+            <span className="text-2xl sm:text-3xl">💵</span>
           </div>
-          <p className="text-3xl font-bold text-green-700">{formatMoney(stats.totalEfectivo.toString())}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-green-700">{formatMoney(stats.totalEfectivo.toString())}</p>
           <p className="text-xs text-green-600 mt-2 font-medium">{stats.pagosEfectivo.length} pagos - Click para ver detalle</p>
         </div>
 
         {/* Otros */}
-        <div 
+        <div
           onClick={() => setDetalleVisible(detalleVisible === 'otros' ? null : 'otros')}
-          className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Otros/Sin Cat.</h4>
-            <span className="text-3xl">❓</span>
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Otros/Sin Cat.</h4>
+            <span className="text-2xl sm:text-3xl">❓</span>
           </div>
-          <p className="text-3xl font-bold text-orange-700">{formatMoney(stats.totalOtros.toString())}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-orange-700">{formatMoney(stats.totalOtros.toString())}</p>
           <p className="text-xs text-orange-600 mt-2 font-medium">{stats.pagosOtros.length} pagos - Click para ver detalle</p>
         </div>
       </div>
@@ -302,9 +300,9 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
             <h3 className="text-xl font-bold text-gray-900">
               📋 Detalle de {
                 detalleVisible === 'osvaldo' ? 'Transferencias Osvaldo' :
-                detalleVisible === 'noe' ? 'Transferencias Noe' :
-                detalleVisible === 'efectivo' ? 'Pagos en Efectivo' :
-                'Otros Pagos'
+                  detalleVisible === 'noe' ? 'Transferencias Noe' :
+                    detalleVisible === 'efectivo' ? 'Pagos en Efectivo' :
+                      'Otros Pagos'
               }
             </h3>
             <button
@@ -328,8 +326,8 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
               <tbody className="bg-white divide-y divide-gray-200">
                 {(detalleVisible === 'osvaldo' ? stats.pagosOsvaldo :
                   detalleVisible === 'noe' ? stats.pagosNoe :
-                  detalleVisible === 'efectivo' ? stats.pagosEfectivo :
-                  stats.pagosOtros
+                    detalleVisible === 'efectivo' ? stats.pagosEfectivo :
+                      stats.pagosOtros
                 ).map((pago) => (
                   <tr key={pago.id} className="hover:bg-blue-50 transition-colors duration-150">
                     <td className="px-6 py-4 text-sm text-gray-500 font-medium">#{pago.numeroPagoDia}</td>
@@ -352,41 +350,41 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       )}
 
       {/* Total del período */}
-      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-8 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow duration-200">
+      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow duration-200">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-3">
+            <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
               {usarHoy ? 'Total de Hoy' : 'Total del Período'}
             </h3>
-            <p className="text-5xl font-bold text-indigo-700">
+            <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
               {formatMoney((stats.totalOsvaldo + stats.totalNoe + stats.totalEfectivo + stats.totalOtros).toString())}
             </p>
-            <div className="mt-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
+            <div className="mt-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold">
                 📊 {stats.cantidadPagos} pagos
               </span>
             </div>
           </div>
-          <div className="text-6xl">💰</div>
+          <div className="text-4xl sm:text-5xl">💰</div>
         </div>
       </div>
 
       {/* Estadísticas totales */}
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-8 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-gray-500 text-sm font-semibold uppercase tracking-wide mb-3">Total Pagos Recibidos</h3>
-            <p className="text-5xl font-bold text-green-600">{formatMoney(totalPagos.toString())}</p>
-            <div className="mt-4 flex items-center gap-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 font-semibold">
-                📊 {pagosSemana.length} pagos esta semana
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
+        <div className="flex">
+          <div className='w-full'>
+            <h3 className="text-gray-500 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 flex justify-between items-center">
+              Total Pagos Recibidos <span className='text-2xl'>💰</span>
+            </h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(totalPagos.toString())}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs sm:text-sm font-semibold">
+                📊 {pagosSemana.length} pagos esta semana = {formatMoney(totalPagosSemana.toString())}
               </span>
-              <span className="text-lg font-bold text-green-700">
-                {formatMoney(totalPagosSemana.toString())}
-              </span>
+
             </div>
           </div>
-          <div className="text-6xl">💰</div>
+
         </div>
       </div>
 
@@ -422,7 +420,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
                   const fechaActual = formatDate(pago.fechaPago);
                   const fechaAnterior = index > 0 ? formatDate(pagos[index - 1].fechaPago) : null;
                   const cambioFecha = fechaActual !== fechaAnterior;
-                  
+
                   return (
                     <Fragment key={pago.id}>
                       {cambioFecha && index > 0 && (

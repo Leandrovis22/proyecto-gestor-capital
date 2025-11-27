@@ -327,7 +327,7 @@ export default function Home() {
                   syncStatus && <p className="text-sm text-gray-600">{syncStatus}</p>
                 )}
               </div>
-              <div>
+              <div className='px-2'>
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   aria-label="Abrir menú"
@@ -360,7 +360,7 @@ export default function Home() {
                 disabled={isRefreshing || syncRunning}
                 className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
+                {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Solo Cambios'}
               </button>
 
               <button
@@ -380,7 +380,7 @@ export default function Home() {
                     <h2 className="font-bold text-md text-center">Gestor Capital Julieta Joyas Web 💎</h2>
                     
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     
                     <button
                       onClick={() => {
@@ -399,7 +399,7 @@ export default function Home() {
                       disabled={isRefreshing || syncRunning}
                       className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm"
                     >
-                      {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
+                      {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Solo Cambios'}
                     </button>
                     <button
                       onClick={() => { handleLogout(); setMobileMenuOpen(false); }}

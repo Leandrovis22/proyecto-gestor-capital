@@ -1,3 +1,5 @@
+// src/lib/auth.ts
+
 /**
  * Helper para obtener el token de sesión del sessionStorage
  */

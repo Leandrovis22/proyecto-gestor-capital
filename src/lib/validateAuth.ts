@@ -1,3 +1,5 @@
+// src/lib/validateAuth.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/sessionManager';
 

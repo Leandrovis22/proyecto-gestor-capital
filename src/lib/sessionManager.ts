@@ -1,3 +1,5 @@
+// src/lib/sessionManager.ts
+
 import { randomBytes } from 'crypto';
 
 // Usar globalThis para persistir entre reloads de Next.js en desarrollo

@@ -1,3 +1,5 @@
+// src/app/api/auth/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createSession } from '@/lib/sessionManager';
 

@@ -28,7 +28,15 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
   // Si el token es inválido, cerrar sesión y recargar
   if (response.status === 401) {
     sessionStorage.removeItem('sessionToken');
-    window.location.reload();
+    // Pequeño debounce: esperar un momento antes de recargar para
+    // evitar que una petición concurrente (p.ej. durante el login)
+    // interrumpa el flujo y fuerce una recarga innecesaria.
+    setTimeout(() => {
+      // Si durante el debounce se guardó un token (login exitoso), no recargar.
+      if (!sessionStorage.getItem('sessionToken')) {
+        window.location.reload();
+      }
+    }, 300);
     throw new Error('Sesión expirada');
   }
 

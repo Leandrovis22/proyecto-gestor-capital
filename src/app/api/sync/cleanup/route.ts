@@ -29,16 +29,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`🗑️ Limpiando archivos eliminados (activos: ${archivosActivos.length})`);
 
-    // Eliminar clientes cuyos archivos ya no existen
-    const resultado = await prisma.cliente.deleteMany({
+    // Marcar como inactivos los clientes cuyos archivos ya no existen (evita borrar pagos y perder timestamps)
+    const resultado = await prisma.cliente.updateMany({
       where: {
-        archivoId: {
-          notIn: archivosActivos
-        }
+        archivoId: { notIn: archivosActivos }
+      },
+      data: {
+        activo: false
       }
     });
 
-    console.log(`✅ Clientes eliminados: ${resultado.count}`);
+    console.log(`✅ Clientes marcados como inactivos: ${resultado.count}`);
 
     return NextResponse.json({
       success: true,

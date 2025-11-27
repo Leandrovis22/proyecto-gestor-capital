@@ -115,7 +115,8 @@ export async function POST(request: NextRequest) {
       }
       
       // 4. REGENERAR PAGOS (DENTRO de la transacción)
-      await regenerarPagos(tx, cliente.id);
+      // Pasar la fecha de modificación del archivo para usar como fallback de timestamp
+      await regenerarPagos(tx, cliente.id, datos.fechaModificacion);
       
       // 5. REGENERAR VENTAS (DENTRO de la transacción)
       await regenerarVentas(tx, cliente.id, datos.registrosVentas, datos.fechaModificacion);
@@ -175,13 +176,24 @@ export async function POST(request: NextRequest) {
 // FUNCIÓN: Regenerar Pagos (OPTIMIZADA)
 // ========================================
 
-async function regenerarPagos(tx: any, clienteId: string) {
-  // Eliminar pagos antiguos de este cliente
-  await tx.pago.deleteMany({
-    where: { clienteId }
+async function regenerarPagos(tx: any, clienteId: string, archivoTimestamp: Date) {
+  // Preservar timestamps existentes cuando sea posible.
+  // 1) Obtener pagos existentes del cliente (dentro del rango relevante)
+  const pagosExistentes = await tx.pago.findMany({
+    where: { clienteId, fechaPago: { gte: FECHA_LIMITE_PAGOS } },
+    select: { fechaPago: true, monto: true, tipoPago: true, timestampArchivo: true }
   });
-  
-  // Obtener registros consolidados con fecha Y entrega > 0
+
+  const mapaTimestamps = new Map();
+  for (const p of pagosExistentes) {
+    const key = `${p.fechaPago.toISOString()}|${p.monto.toString()}|${(p.tipoPago || '')}`;
+    mapaTimestamps.set(key, p.timestampArchivo);
+  }
+
+  // 2) Eliminar pagos antiguos de este cliente (los regeneraremos)
+  await tx.pago.deleteMany({ where: { clienteId } });
+
+  // 3) Obtener registros consolidados con fecha Y entrega > 0
   const registros = await tx.registroConsolidado.findMany({
     where: {
       clienteId,
@@ -191,40 +203,49 @@ async function regenerarPagos(tx: any, clienteId: string) {
         { fechaPago: { gte: FECHA_LIMITE_PAGOS } }
       ]
     },
-    orderBy: [
-      { fechaPago: 'desc' }
-    ]
+    orderBy: [ { fechaPago: 'desc' } ]
   });
-  
-  // Crear pagos con numeración calculada de antemano
+
+  // 4) Crear pagos con numeración calculada de antemano
   if (registros.length > 0) {
     // Agrupar por día para calcular numeración
     const pagosPorDia = new Map<string, typeof registros>();
-    
+
     for (const reg of registros) {
       const diaKey = reg.fechaPago!.toISOString().split('T')[0];
-      if (!pagosPorDia.has(diaKey)) {
-        pagosPorDia.set(diaKey, []);
-      }
+      if (!pagosPorDia.has(diaKey)) pagosPorDia.set(diaKey, []);
       pagosPorDia.get(diaKey)!.push(reg);
     }
-    
+
     // Crear pagos con numeración ya calculada
-    const pagosData = [];
+    const pagosData: any[] = [];
     for (const [dia, regs] of pagosPorDia.entries()) {
-      const total = regs.length;
+      // Dentro del mismo día, ordenar los registros por timestamp existente si hay coincidencias
+      // Construir keys y try to preserve original timestamp ordering
+      const regsConTimestamp = regs.map(r => {
+        const key = `${r.fechaPago!.toISOString()}|${r.entrega.toString()}|${(r.columnaK || '')}`;
+        const ts = mapaTimestamps.get(key) || archivoTimestamp || new Date();
+        return { reg: r, ts };
+      });
+
+      // Orden ascendente por timestamp para numeración 1..N (luego se usa numeración inversa para mantener behavior previo)
+      regsConTimestamp.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+      const total = regsConTimestamp.length;
       for (let i = 0; i < total; i++) {
+        const r = regsConTimestamp[i].reg;
+        const ts = regsConTimestamp[i].ts instanceof Date ? regsConTimestamp[i].ts : new Date(regsConTimestamp[i].ts);
         pagosData.push({
           clienteId,
-          fechaPago: regs[i].fechaPago!,
-          monto: regs[i].entrega,
-          tipoPago: regs[i].columnaK,
-          timestampArchivo: new Date(),
-          numeroPagoDia: total - i // Numeración inversa
+          fechaPago: r.fechaPago!,
+          monto: r.entrega,
+          tipoPago: r.columnaK,
+          timestampArchivo: ts,
+          numeroPagoDia: total - i // Numeración inversa (mantener compatibilidad)
         });
       }
     }
-    
+
     // INSERCIÓN BATCH en lugar de updates individuales
     await tx.pago.createMany({ data: pagosData });
   }

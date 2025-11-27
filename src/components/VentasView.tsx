@@ -9,6 +9,8 @@ interface Venta {
   fechaVenta: string;
   totalVenta: string;
   numeroVentaDia: number;
+  timestampArchivo?: string;
+  createdAt?: string;
 }
 
 interface Cliente {
@@ -24,6 +26,7 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Map<string, Cliente>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [semanasMostrar, setSemanasMostrar] = useState(2); // mostrar por defecto 2 semanas
 
   useEffect(() => {
     fetchData();
@@ -66,6 +69,11 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
     return `${day}/${month}/${year}`;
   };
 
+  const parseDateUTC = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  };
+
   const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
 
   // Calcular ventas de esta semana completa (lunes a domingo actual)
@@ -83,10 +91,44 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
   fechaDomingoActual.setHours(23, 59, 59, 999);
 
   const ventasSemana = ventas.filter(v => {
-    const fechaVenta = new Date(v.fechaVenta);
+    const fechaVenta = parseDateUTC(v.fechaVenta);
     return fechaVenta >= fechaLunesActual && fechaVenta <= fechaDomingoActual;
   });
   const totalVentasSemana = ventasSemana.reduce((sum, v) => sum + parseFloat(v.totalVenta), 0);
+
+  // Registro de ventas: mostrar solo ventas de las últimas N semanas
+  const hoyRegistro = new Date();
+  hoyRegistro.setHours(0, 0, 0, 0);
+  const fechaRegistroInicio = new Date(hoyRegistro);
+  const diasMostrar = semanasMostrar * 7;
+  fechaRegistroInicio.setDate(hoyRegistro.getDate() - (diasMostrar - 1));
+  const ventasRegistro = ventas.filter(v => parseDateUTC(v.fechaVenta) >= fechaRegistroInicio);
+
+  // Ordenar por fecha (día) ascendente; dentro del mismo día ordenar por timestampArchivo (hora)
+  const ventasRegistroSorted = [...ventasRegistro].sort((a, b) => {
+    const fechaA = parseDateUTC(a.fechaVenta).getTime();
+    const fechaB = parseDateUTC(b.fechaVenta).getTime();
+    if (fechaA !== fechaB) return fechaA - fechaB;
+
+    const tsA = a.timestampArchivo ? new Date(a.timestampArchivo).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+    const tsB = b.timestampArchivo ? new Date(b.timestampArchivo).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+    if (tsA !== tsB) return tsA - tsB;
+
+    return (a.numeroVentaDia || 0) - (b.numeroVentaDia || 0);
+  });
+
+  // Calcular numeración por día empezando en 1
+  const numeracionPorVenta = new Map<string, number>();
+  const contadorPorDiaVenta: Record<string, number> = {};
+  ventasRegistroSorted.forEach(v => {
+    const key = formatDate(v.fechaVenta);
+    contadorPorDiaVenta[key] = (contadorPorDiaVenta[key] || 0) + 1;
+    numeracionPorVenta.set(v.id, contadorPorDiaVenta[key]);
+  });
+
+  // Mostrar más recientes arriba
+  const ventasRegistroSortedDesc = [...ventasRegistroSorted].reverse();
+  const hayVentasMasAntiguas = ventas.some(v => parseDateUTC(v.fechaVenta) < fechaRegistroInicio);
 
   if (loading) {
     return (
@@ -128,11 +170,11 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
             📋 Registro de Ventas
           </h3>
           <span className="text-sm text-gray-500 font-medium">
-            Total: {ventas.length} ventas
+            Total: {ventasRegistroSortedDesc.length} ventas
           </span>
         </div>
         <div className="overflow-x-auto">
-          {ventas.length === 0 ? (
+          {ventasRegistroSortedDesc.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📭</div>
               <p className="text-gray-500 text-lg font-medium">No hay ventas registradas</p>
@@ -148,10 +190,11 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {ventas.map((venta, index) => {
+                {ventasRegistroSortedDesc.map((venta, index) => {
                   const fechaActual = formatDate(venta.fechaVenta);
-                  const fechaAnterior = index > 0 ? formatDate(ventas[index - 1].fechaVenta) : null;
+                  const fechaAnterior = index > 0 ? formatDate(ventasRegistroSortedDesc[index - 1].fechaVenta) : null;
                   const cambioFecha = fechaActual !== fechaAnterior;
+                  const numeroDia = numeracionPorVenta.get(venta.id) ?? venta.numeroVentaDia ?? (index + 1);
                   
                   return (
                     <Fragment key={venta.id}>
@@ -163,7 +206,7 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
                         </tr>
                       )}
                       <tr className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 transition-colors duration-150 border-b border-gray-100">
-                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">#{venta.numeroVentaDia}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">#{numeroDia}</td>
                         <td className="px-6 py-4 text-sm text-gray-600 font-semibold">{fechaActual}</td>
                         <td className="px-6 py-4 text-sm font-semibold text-gray-900">
                           {clientes.get(venta.clienteId)?.nombre || 'Desconocido'}
@@ -176,6 +219,16 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
               </tbody>
             </table>
           )}
+        </div>
+        {/* Botón para cargar más ventas (2 semanas adicionales) */}
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setSemanasMostrar(s => s + 2)}
+            disabled={!hayVentasMasAntiguas}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${hayVentasMasAntiguas ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+          >
+            Cargar más ventas (2 semanas)
+          </button>
         </div>
       </div>
     </div>

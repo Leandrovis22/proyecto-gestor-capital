@@ -10,6 +10,8 @@ interface Pago {
   monto: string;
   tipoPago: string;
   numeroPagoDia: number;
+  timestampArchivo?: string;
+  createdAt?: string;
 }
 
 interface Cliente {
@@ -29,6 +31,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
   const [fechaFin, setFechaFin] = useState('');
   const [usarHoy, setUsarHoy] = useState(true);
   const [detalleVisible, setDetalleVisible] = useState<string | null>(null);
+  const [semanasMostrar, setSemanasMostrar] = useState(2); // Mostrar por defecto 2 semanas
 
   useEffect(() => {
     fetchData();
@@ -184,6 +187,44 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
     return fechaPago >= fechaLunesActual && fechaPago <= fechaDomingoActual;
   });
   const totalPagosSemana = pagosSemana.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+
+  // Registro de pagos: mostrar solo pagos de las últimas 2 semanas (últimos 14 días incluyendo hoy)
+  const hoyRegistro = new Date();
+  hoyRegistro.setHours(0, 0, 0, 0);
+  const fechaRegistroInicio = new Date(hoyRegistro);
+  // semanasMostrar semanas (cada semana = 7 días). Restamos (days - 1) para incluir hoy.
+  const diasMostrar = semanasMostrar * 7;
+  fechaRegistroInicio.setDate(hoyRegistro.getDate() - (diasMostrar - 1));
+  const pagosRegistro = pagos.filter(p => parseDateUTC(p.fechaPago) >= fechaRegistroInicio);
+
+  // Ordenar por fecha (día) ascendente; dentro del mismo día ordenar por timestampArchivo (hora)
+  // Si falta timestampArchivo, usar createdAt como fallback
+  const pagosRegistroSorted = [...pagosRegistro].sort((a, b) => {
+    const fechaA = parseDateUTC(a.fechaPago).getTime();
+    const fechaB = parseDateUTC(b.fechaPago).getTime();
+    if (fechaA !== fechaB) return fechaA - fechaB;
+
+    const tsA = a.timestampArchivo ? new Date(a.timestampArchivo).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+    const tsB = b.timestampArchivo ? new Date(b.timestampArchivo).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+    if (tsA !== tsB) return tsA - tsB;
+
+    return (a.numeroPagoDia || 0) - (b.numeroPagoDia || 0);
+  });
+
+  // Calcular numeración por día empezando en 1
+  const numeracionPorPago = new Map<string, number>();
+  const contadorPorDia: Record<string, number> = {};
+  pagosRegistroSorted.forEach(p => {
+    const key = formatDate(p.fechaPago); // dd/mm/yyyy
+    contadorPorDia[key] = (contadorPorDia[key] || 0) + 1;
+    numeracionPorPago.set(p.id, contadorPorDia[key]);
+  });
+
+  // Mostrar más recientes arriba (descendente) pero conservar la numeración calculada
+  const pagosRegistroSortedDesc = [...pagosRegistroSorted].reverse();
+
+  // Determinar si hay pagos más antiguos fuera del rango actual
+  const hayPagosMasAntiguos = pagos.some(p => parseDateUTC(p.fechaPago) < fechaRegistroInicio);
 
   if (loading) {
     return (
@@ -489,11 +530,11 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
             📋 Registro de Pagos
           </h3>
           <span className="text-sm text-gray-500 font-medium">
-            Total: {pagos.length} pagos
+            Total: {pagosRegistroSortedDesc.length} pagos
           </span>
         </div>
         <div className="overflow-x-auto">
-          {pagos.length === 0 ? (
+          {pagosRegistroSortedDesc.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📭</div>
               <p className="text-gray-500 text-lg font-medium">No hay pagos registrados</p>
@@ -510,10 +551,11 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {pagos.map((pago, index) => {
+                {pagosRegistroSortedDesc.map((pago, index) => {
                   const fechaActual = formatDate(pago.fechaPago);
-                  const fechaAnterior = index > 0 ? formatDate(pagos[index - 1].fechaPago) : null;
+                  const fechaAnterior = index > 0 ? formatDate(pagosRegistroSortedDesc[index - 1].fechaPago) : null;
                   const cambioFecha = fechaActual !== fechaAnterior;
+                  const numeroDia = numeracionPorPago.get(pago.id) ?? pago.numeroPagoDia ?? (index + 1);
 
                   return (
                     <Fragment key={pago.id}>
@@ -525,7 +567,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
                         </tr>
                       )}
                       <tr className="hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 transition-colors duration-150 border-b border-gray-100">
-                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">#{pago.numeroPagoDia}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">#{numeroDia}</td>
                         <td className="px-6 py-4 text-sm text-gray-600 font-semibold">{fechaActual}</td>
                         <td className="px-6 py-4 text-sm font-semibold text-gray-900">
                           {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
@@ -543,6 +585,16 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
               </tbody>
             </table>
           )}
+        </div>
+        {/* Botón para cargar más pagos (2 semanas adicionales) */}
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setSemanasMostrar(s => s + 2)}
+            disabled={!hayPagosMasAntiguos}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${hayPagosMasAntiguos ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+          >
+            Cargar más pagos (2 semanas)
+          </button>
         </div>
       </div>
     </div>

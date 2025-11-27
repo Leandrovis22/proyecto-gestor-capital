@@ -20,6 +20,8 @@ export default function Home() {
   const [syncRunning, setSyncRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [lastSyncSummary, setLastSyncSummary] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: string; title?: string; message: string; type?: 'info' | 'success' | 'error' | 'warning' }>>([]);
 
   useEffect(() => {
@@ -80,6 +82,10 @@ export default function Home() {
           }
         }
         setSyncStatus(estadoData.estado.mensaje);
+        // Si el estado indica finalizado, almacenar un resumen para mostrar en mobile
+        if (estadoData.estado.estado === 'completado') {
+          setLastSyncSummary(`✅ Sincronización completada: ${estadoData.estado.archivosActualizados || 0} archivos actualizados`);
+        }
         const running = estadoData.estado.estado === 'en_progreso';
         setSyncRunning(running);
         console.log('Estado de sincronización (inicial):', estadoData.estado);
@@ -91,6 +97,7 @@ export default function Home() {
         // Si no hay estado registrado, limpiar indicadores
         setSyncStatus(null);
         setSyncRunning(false);
+        setLastSyncSummary(null);
       }
     } catch (error) {
       console.error('Error al obtener el estado de sincronización (inicio):', error);
@@ -152,6 +159,7 @@ export default function Home() {
         if (data.estado === 'completado' || data.mensaje?.toLowerCase().includes('completada')) {
           addToast({ type: 'success', message: `✅ Sincronización completada\nArchivos actualizados: ${data.archivosActualizados || 0}\nArchivos omitidos: ${data.archivosOmitidos || 0}\nDuración: ${data.duracionSegundos || 'n/a'}s` });
           setRefreshKey(prev => prev + 1);
+          setLastSyncSummary(`✅ Sincronización completada: ${data.archivosActualizados || 0} archivos actualizados`);
         } else {
           // La sincronización quedó en progreso (procesamiento por lotes). No mostrar alerta de completado.
           setSyncRunning(true);
@@ -195,6 +203,7 @@ export default function Home() {
                   const s = estadoData.estado;
                   addToast({ type: 'success', message: `✅ Sincronización completada\nArchivos actualizados: ${s.archivosActualizados || 0}\nArchivos omitidos: ${s.archivosOmitidos || 0}\nDuración: ${s.duracionSegundos || 'n/a'}s` });
                   setRefreshKey(prev => prev + 1);
+                  setLastSyncSummary(`✅ Sincronización completada: ${s.archivosActualizados || 0} archivos actualizados`);
                   if (intervalRef.current) {
                     clearInterval(intervalRef.current);
                     intervalRef.current = null;
@@ -286,11 +295,12 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
       {/* Header */}
-      <header className="bg-white shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-white shadow-lg border-b border-gray-200 relative">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            {/* Desktop title + info */}
+            <div className="hidden sm:block">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 tracking-tight">
                 Gestor Capital Julieta Joyas Web 💎
               </h1>
               {lastUpdate && (
@@ -304,16 +314,35 @@ export default function Home() {
                 </>
               )}
             </div>
-            
-            <div className="flex flex-wrap gap-2 justify-center">
-              <button
-                onClick={() => handleSync(false)}
-                disabled={isRefreshing || syncRunning}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              >
-                {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
-              </button>
-              
+
+            {/* Mobile compact info: only show lastUpdate and a short sync summary/status */}
+            <div className="sm:hidden w-full flex items-center justify-between">
+              <div>
+                {lastUpdate && (
+                  <p className="text-sm text-gray-700">⏱️ Última actualización: {formatDateTime(lastUpdate)}</p>
+                )}
+                {lastSyncSummary ? (
+                  <p className="text-sm text-green-700">{lastSyncSummary}</p>
+                ) : (
+                  syncStatus && <p className="text-sm text-gray-600">{syncStatus}</p>
+                )}
+              </div>
+              <div>
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label="Abrir menú"
+                  className="p-2 rounded-md bg-gray-100 hover:bg-gray-200"
+                >
+                  <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop actions */}
+            <div className="hidden sm:flex flex-wrap gap-2 justify-center">
+
               <button
                 onClick={() => {
                   if (confirm('⚠️ ADVERTENCIA\n\nEsto va a recargar TODOS los datos. Será lento y puede causar corte en el servicio de Google Drive si se utiliza muy seguido.\n\n💡 Se recomienda usar solo 1 vez por semana.\n\n¿Deseas continuar?')) {
@@ -327,6 +356,14 @@ export default function Home() {
               </button>
 
               <button
+                onClick={() => handleSync(false)}
+                disabled={isRefreshing || syncRunning}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              >
+                {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
+              </button>
+
+              <button
                 onClick={handleLogout}
                 className="px-5 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 title="Cerrar sesión"
@@ -334,6 +371,46 @@ export default function Home() {
                 🔓 Salir
               </button>
             </div>
+
+            {/* Mobile menu panel */}
+            {mobileMenuOpen && (
+              <div className="sm:hidden absolute top-full left-0 right-0 bg-white shadow-lg border-t border-gray-200 p-4 z-50">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h2 className="font-bold text-md text-center">Gestor Capital Julieta Joyas Web 💎</h2>
+                    
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    
+                    <button
+                      onClick={() => {
+                        if (confirm('⚠️ ADVERTENCIA\n\nEsto va a recargar TODOS los datos. Será lento y puede causar corte en el servicio de Google Drive si se utiliza muy seguido.\n\n💡 Se recomienda usar solo 1 vez por semana.\n\n¿Deseas continuar?')) {
+                          handleSync(true);
+                          setMobileMenuOpen(false);
+                        }
+                      }}
+                      disabled={isRefreshing || syncRunning}
+                      className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm"
+                    >
+                      🔄 Actualizar Todo
+                    </button>
+                    <button
+                      onClick={() => { handleSync(false); setMobileMenuOpen(false); }}
+                      disabled={isRefreshing || syncRunning}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm"
+                    >
+                      {isRefreshing ? '🔄 Sincronizando...' : '🔄 Actualizar Ahora'}
+                    </button>
+                    <button
+                      onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                      className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 font-semibold text-sm"
+                    >
+                      🔓 Salir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

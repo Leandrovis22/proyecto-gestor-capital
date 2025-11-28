@@ -96,11 +96,11 @@ export default function DeudoresView({ refreshKey }: DeudoresViewProps) {
       {/* Lista de deudores */}
       <div className="bg-white rounded-xl shadow-lg px-2 py-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-md md:text-2xl font-bold text-gray-900 flex items-center gap-2">
             📋 Clientes Deudores
           </h3>
-          <span className="text-sm text-gray-500 font-medium">
-            Total: {clientes.length} clientes
+          <span className="text-xs text-gray-500 font-medium">
+            {clientes.length} Encontrados
           </span>
         </div>
         <div className="overflow-x-auto">

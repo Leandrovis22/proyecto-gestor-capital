@@ -320,7 +320,7 @@ export default function InversionesManager({ refreshKey }: InversionesManagerPro
       )}
 
       <div className="bg-white rounded-xl shadow-lg px-2 py-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
-        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">📋 Lista de Inversiones {filtro !== 'todos' && (<span className="text-base font-normal text-gray-500">({inversionesFiltradas.length} de {inversiones.length})</span>)}</h3>
+        <h3 className="text-md md:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">📋 Lista de Inversiones {filtro !== 'todos' && (<span className="text-base font-normal text-gray-500">({inversionesFiltradas.length} de {inversiones.length})</span>)}</h3>
 
         <div className="overflow-x-auto">
           {/* Desktop/tablet: tabla (oculta en mobile) */}
@@ -376,7 +376,7 @@ export default function InversionesManager({ refreshKey }: InversionesManagerPro
                   return (
                     <Fragment key={inversion.id}>
                       {index > 0 && fechaActual !== fechaAnterior && (<div className="w-full"><div className="border-t-4 border-indigo-800 my-1"></div></div>)}
-                      <div className="flex flex-col bg-white border rounded-lg p-3">
+                      <div className="flex flex-col bg-white border rounded-lg py-1 px-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
@@ -386,7 +386,7 @@ export default function InversionesManager({ refreshKey }: InversionesManagerPro
                             <div className="mt-1 text-xs text-gray-500">{fechaActual}</div>
                           </div>
                         </div>
-                        <div className="mt-3 flex items-center justify-between">
+                        <div className="mt-1 flex items-center justify-between">
                           <div>{!(inversion as any).confirmado ? (<span className="inline-flex items-center px-3 py-1 text-xs bg-yellow-200 text-yellow-800 rounded-full font-semibold">Por confirmar</span>) : (<span className="inline-flex items-center px-3 py-1 text-xs bg-green-200 text-green-800 rounded-full font-semibold">Confirmado</span>)}</div>
                           <div className="flex items-center gap-2">
                             <button onClick={() => handleToggleConfirmado(inversion)} className="px-2 py-1 rounded-lg text-sm bg-gray-100 hover:bg-gray-200" title={(inversion as any).confirmado ? 'Desconfirmar' : 'Confirmar'}>{(inversion as any).confirmado ? '⏸️' : '✅'}</button>

@@ -172,11 +172,11 @@ export default function VentasView({ refreshKey }: VentasViewProps) {
       {/* Lista de ventas */}
       <div className="bg-white rounded-xl shadow-lg px-2 py-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-md md:text-2xl font-bold text-gray-900 flex items-center gap-2">
             📋 Registro de Ventas
           </h3>
-          <span className="text-sm text-gray-500 font-medium">
-            Total: {ventasRegistroSortedDesc.length} ventas
+          <span className="text-xs text-gray-500 font-medium">
+            Ventas: {ventasRegistroSortedDesc.length}
           </span>
         </div>
         {/* Desktop/tablet: tabla (oculta en mobile) */}

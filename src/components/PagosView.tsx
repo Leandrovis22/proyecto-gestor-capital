@@ -150,8 +150,8 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       const monto = parseFloat(pago.monto);
       const tipoLower = pago.tipoPago ? pago.tipoPago.toLowerCase().trim() : '';
 
-      // Buscar "osv" en el tipo (para cualquier variante de Osvaldo)
-      if (tipoLower.includes('osv')) {
+      // Buscar "osv" o "tra os" en el tipo (para cualquier variante de Osvaldo)
+      if (tipoLower.includes('osv') || tipoLower.includes('tra os')) {
         totalOsvaldo += monto;
         pagosOsvaldo.push(pago);
       }
@@ -550,7 +550,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       {/* Lista de pagos */}
       <div className="bg-white rounded-xl shadow-lg px-2 py-4 sm:p-6 hover:shadow-xl transition-shadow duration-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">📋 Registro de Pagos</h3>
+          <h3 className="text-md sm:text-2xl font-bold text-gray-900 flex items-center gap-2">📋 Registro de Pagos</h3>
           <span className="text-xs sm:text-sm text-gray-500 font-medium">Total: {pagosRegistroSortedDesc.length} pagos</span>
         </div>
 

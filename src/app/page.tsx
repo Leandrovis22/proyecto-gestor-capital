@@ -377,7 +377,9 @@ export default function Home() {
                     ⏱️ Última actualización: {formatDateTime(lastUpdate)}
                   </p>
                   {syncStatus && (
-                    <p className="text-sm text-gray-600 mt-1">{syncStatus}</p>
+                    <p className="text-sm text-gray-600">
+                      {syncStatus}
+                    </p>
                   )}
                 </>
               )}
@@ -385,14 +387,14 @@ export default function Home() {
 
             {/* Mobile compact info: only show lastUpdate and a short sync summary/status */}
             <div className="sm:hidden w-full flex items-center justify-between">
-              <div>
+              <div className='pl-2'>
                 {lastUpdate && (
-                  <p className="text-sm text-gray-700">⏱️ Última actualización: {formatDateTime(lastUpdate)}</p>
+                  <p className="text-sm text-gray-700">⏱️ Última actualización: <br />{formatDateTime(lastUpdate)}</p>
                 )}
                 {lastSyncSummary ? (
-                  <p className="text-sm text-green-700">{lastSyncSummary}</p>
+                  <p className="text-sm text-green-700" dangerouslySetInnerHTML={{ __html: lastSyncSummary.replace(':', ':<br />') }}></p>
                 ) : (
-                  syncStatus && <p className="text-sm text-gray-600">{syncStatus}</p>
+                  syncStatus && <p className="text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: syncStatus.replace(':', ':<br />') }}></p>
                 )}
               </div>
               <div className='px-2'>
@@ -562,7 +564,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 py-8 text-center border-t border-gray-200 bg-white/50 backdrop-blur-sm">
+      <footer className="py-5 text-center border-t border-gray-200 bg-white/50 backdrop-blur-sm">
         <p className="text-gray-600 text-sm font-medium">💡 Los cálculos de capital consideran pagos y ventas desde el 04/11/2025</p>
         <p className="text-gray-400 text-xs mt-2">© 2025 Gestor Capital por Leandro Viscolungo</p>
       </footer>

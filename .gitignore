@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 google_apps_script.js
+seed-expenses-investments.js

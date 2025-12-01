@@ -31,10 +31,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       if (data.success && data.sessionToken) {
         // Guardar token INMEDIATAMENTE y SINCRÓNICAMENTE
         sessionStorage.setItem('sessionToken', data.sessionToken);
-        
+
         // Esperar un ciclo para que sessionStorage esté disponible
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // Notificar al padre
         onLogin(data.sessionToken);
       } else {
@@ -58,14 +58,16 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <p className="text-lg text-gray-600">Julieta Joyas 💎</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="on">
           <div>
             <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
               Usuario
             </label>
             <input
               id="username"
+              name="username"
               type="text"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
@@ -81,7 +83,9 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"

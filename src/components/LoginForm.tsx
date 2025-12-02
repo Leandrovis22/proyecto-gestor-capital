@@ -12,7 +12,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -29,11 +29,11 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       const data = await response.json();
 
       if (data.success && data.sessionToken) {
-        // Guardar token INMEDIATAMENTE y SINCRÓNICAMENTE
+        // Guardar token en sessionStorage
         sessionStorage.setItem('sessionToken', data.sessionToken);
 
-        // Esperar un ciclo para que sessionStorage esté disponible
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Esperar un momento para que Chrome detecte el login exitoso
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         // Notificar al padre
         onLogin(data.sessionToken);
@@ -58,7 +58,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <p className="text-lg text-gray-600">Julieta Joyas 💎</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="on">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="on" method="post" action="/api/auth">
           <div>
             <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
               Usuario

@@ -19,12 +19,21 @@ interface Cliente {
   nombre: string;
 }
 
+interface Gasto {
+  id: string;
+  descripcion: string;
+  monto: string;
+  fecha: string;
+  confirmado: boolean;
+}
+
 interface PagosViewProps {
   refreshKey?: number;
 }
 
 export default function PagosView({ refreshKey }: PagosViewProps) {
   const [pagos, setPagos] = useState<Pago[]>([]);
+  const [gastos, setGastos] = useState<Gasto[]>([]);
   const [clientes, setClientes] = useState<Map<string, Cliente>>(new Map());
   const [loading, setLoading] = useState(true);
   const [fechaInicio, setFechaInicio] = useState('');
@@ -79,6 +88,11 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
       const clientesData = await clientesRes.json();
       const clientesMap = new Map<string, Cliente>(clientesData.map((c: Cliente) => [c.id, c]));
       setClientes(clientesMap);
+
+      // Fetch gastos
+      const gastosRes = await authFetch('/api/gastos');
+      const gastosData = await gastosRes.json();
+      setGastos(Array.isArray(gastosData) ? gastosData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -186,6 +200,26 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
   };
 
   const stats = calcularEstadisticasPeriodo();
+
+  // Calcular pagos y gastos de hoy
+  const hoyCalc = new Date();
+  hoyCalc.setHours(0, 0, 0, 0);
+  const mananaCalc = new Date(hoyCalc);
+  mananaCalc.setDate(hoyCalc.getDate() + 1);
+
+  const pagosHoy = pagos.filter(p => {
+    const fechaPago = parseDateUTC(p.fechaPago);
+    return fechaPago >= hoyCalc && fechaPago < mananaCalc;
+  });
+  const totalPagosHoy = pagosHoy.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+
+  const gastosHoy = gastos.filter(g => {
+    const fechaGasto = new Date(g.fecha);
+    fechaGasto.setHours(0, 0, 0, 0);
+    return fechaGasto >= hoyCalc && fechaGasto < mananaCalc && g.confirmado;
+  });
+  const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + parseFloat(g.monto), 0);
+  const balanceHoy = totalPagosHoy - totalGastosHoy;
 
   // Solo pagos desde 2025-10-04
   const FECHA_MINIMA = new Date('2025-10-04T00:00:00Z');
@@ -450,8 +484,129 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
         )}
       </div>
 
+      {/* Detalle de Pagos de Hoy */}
+      {detalleVisible === 'pagosHoy' && (
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-indigo-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Pagos de Hoy</h3>
+            <button
+              onClick={() => setDetalleVisible(null)}
+              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
+            >
+              ✕ Cerrar
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            {pagosHoy.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-3">📭</div>
+                <p className="text-gray-500 text-base font-medium">No hay pagos registrados hoy</p>
+              </div>
+            ) : (
+              <div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cliente</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {pagosHoy.map((pago) => (
+                        <tr key={pago.id} className="hover:bg-indigo-50 transition-colors duration-150">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                            {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-green-600">{formatMoney(pago.monto)}</td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {pago.tipoPago}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile */}
+                <div className="md:hidden space-y-2">
+                  {pagosHoy.map((pago) => (
+                    <div key={pago.id} className="flex flex-col bg-white border rounded-lg p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-800">{clientes.get(pago.clienteId)?.nombre || 'Desconocido'}</span>
+                        <span className="text-sm font-bold text-green-600">{formatMoney(pago.monto)}</span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">{pago.tipoPago}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Detalle de Gastos de Hoy */}
+      {detalleVisible === 'gastosHoy' && (
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-red-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Gastos de Hoy</h3>
+            <button
+              onClick={() => setDetalleVisible(null)}
+              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
+            >
+              ✕ Cerrar
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            {gastosHoy.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-3">📭</div>
+                <p className="text-gray-500 text-base font-medium">No hay gastos confirmados hoy</p>
+              </div>
+            ) : (
+              <div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {gastosHoy.map((gasto) => (
+                        <tr key={gasto.id} className="hover:bg-red-50 transition-colors duration-150">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{gasto.descripcion}</td>
+                          <td className="px-4 py-3 text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile */}
+                <div className="md:hidden space-y-2">
+                  {gastosHoy.map((gasto) => (
+                    <div key={gasto.id} className="flex items-center justify-between bg-white border rounded-lg p-2">
+                      <span className="text-sm font-semibold text-gray-900">{gasto.descripcion}</span>
+                      <span className="text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Detalle de pagos por categoría (desktop) */}
-      {detalleVisible && (
+      {detalleVisible && ['osvaldo', 'noe', 'efectivo', 'otros'].includes(detalleVisible) && (
         <div className="hidden md:block">
           <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-500">
           <div className="flex items-center justify-between mb-4">
@@ -508,37 +663,120 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
         </div>
       )}
 
-      {/* Total del período */}
-      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow duration-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
-              {usarHoy ? 'Total de Hoy' : 'Total del Período'}
-            </h3>
-            <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
-              {formatMoney((stats.totalOsvaldo + stats.totalNoe + stats.totalEfectivo + stats.totalOtros).toString())}
-            </p>
-            <div className="mt-2">
-              <span className="inline-flex items-center px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold">
-                📊 {stats.cantidadPagos} pagos
-              </span>
+      {/* Resumen de Hoy: Pagos, Gastos y Balance */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Pagos de Hoy */}
+        <div
+          onClick={() => setDetalleVisible(detalleVisible === 'pagosHoy' ? null : 'pagosHoy')}
+          className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-full">
+              <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
+                Pagos de Hoy
+              </h3>
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
+                {formatMoney(totalPagosHoy.toString())}
+              </p>
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold">
+                  📊 {pagosHoy.length} pagos - Click para ver detalle
+                </span>
+              </div>
             </div>
+            <div className="text-3xl sm:text-4xl">💰</div>
           </div>
-          <div className="text-4xl sm:text-5xl">💰</div>
+        </div>
+
+        {/* Gastos de Hoy */}
+        <div
+          onClick={() => setDetalleVisible(detalleVisible === 'gastosHoy' ? null : 'gastosHoy')}
+          className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-full">
+              <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
+                Gastos de Hoy
+              </h3>
+              <p className="text-2xl sm:text-3xl font-bold text-red-700">
+                {formatMoney(totalGastosHoy.toString())}
+              </p>
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs sm:text-sm font-semibold">
+                  📊 {gastosHoy.length} gastos - Click para ver detalle
+                </span>
+              </div>
+            </div>
+            <div className="text-3xl sm:text-4xl">💸</div>
+          </div>
+        </div>
+
+        {/* Balance de Hoy */}
+        <div
+          className={`bg-gradient-to-br rounded-xl shadow-lg p-4 sm:p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
+            balanceHoy >= 0
+              ? 'from-green-50 to-emerald-50 border-green-500'
+              : 'from-orange-50 to-orange-100 border-orange-500'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-full">
+              <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
+                Balance de Hoy
+              </h3>
+              <p className={`text-2xl sm:text-3xl font-bold ${
+                balanceHoy >= 0 ? 'text-green-700' : 'text-orange-700'
+              }`}>
+                {formatMoney(balanceHoy.toString())}
+              </p>
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-semibold ${
+                  balanceHoy >= 0
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {balanceHoy >= 0 ? '📈 Positivo' : '📉 Negativo'}
+                </span>
+              </div>
+            </div>
+            <div className="text-3xl sm:text-4xl">{balanceHoy >= 0 ? '✅' : '⚠️'}</div>
+          </div>
         </div>
       </div>
+
+      {/* Total del Período Filtrado */}
+      {!usarHoy && (
+        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
+                Total del Período
+              </h3>
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
+                {formatMoney((stats.totalOsvaldo + stats.totalNoe + stats.totalEfectivo + stats.totalOtros).toString())}
+              </p>
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold">
+                  📊 {stats.cantidadPagos} pagos
+                </span>
+              </div>
+            </div>
+            <div className="text-4xl sm:text-5xl">💰</div>
+          </div>
+        </div>
+      )}
 
       {/* Estadísticas totales */}
       <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-200">
         <div className="flex">
           <div className='w-full'>
             <h3 className="text-gray-500 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 flex justify-between items-center">
-              Total Pagos Recibidos <span className='text-2xl'>💰</span>
+              Total Esta Semana <span className='text-2xl'>💰</span>
             </h3>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(totalPagos.toString())}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{formatMoney(totalPagosSemana.toString())}</p>
             <div className="mt-2 flex items-center gap-2">
               <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs sm:text-sm font-semibold">
-                📊 {pagosSemana.length} pagos esta semana = {formatMoney(totalPagosSemana.toString())}
+                📊 Total histórico: {formatMoney(totalPagos.toString())} ({pagosDesdeFecha.length} pagos)
               </span>
 
             </div>

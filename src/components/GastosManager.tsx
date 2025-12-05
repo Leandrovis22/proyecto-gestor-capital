@@ -182,6 +182,18 @@ interface Gasto {
     const totalConfirmados = gastosFiltrados.filter(g => g.confirmado).reduce((s, g) => s + parseFloat(g.monto), 0);
     const totalPorConfirmar = gastosFiltrados.filter(g => !g.confirmado).reduce((s, g) => s + parseFloat(g.monto), 0);
 
+    // Calcular gastos de hoy
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const manana = new Date(hoy);
+    manana.setDate(hoy.getDate() + 1);
+    
+    const gastosHoy = gastos.filter(g => {
+      const fechaGasto = new Date(g.fecha);
+      return fechaGasto >= hoy && fechaGasto < manana;
+    });
+    const totalGastosHoy = gastosHoy.filter(g => g.confirmado).reduce((s, g) => s + parseFloat(g.monto), 0);
+
     if (loading) return (
       <div className="flex flex-col justify-center items-center py-20">
         <div className="relative">
@@ -203,7 +215,21 @@ interface Gasto {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow duration-200">
+            <div className="flex">
+              <div className='w-full'>
+                <h3 className="text-gray-500 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 flex justify-between items-center">Gastos de Hoy <span className='text-2xl'>📅</span></h3>
+                <p className="text-2xl sm:text-3xl font-bold text-orange-600">{formatMoney(totalGastosHoy.toString())}</p>
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs sm:text-sm font-semibold">
+                    📊 {gastosHoy.filter(g => g.confirmado).length} gastos confirmados
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow duration-200">
             <div className="flex">
               <div className='w-full'>

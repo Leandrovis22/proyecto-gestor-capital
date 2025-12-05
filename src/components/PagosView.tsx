@@ -201,25 +201,64 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
 
   const stats = calcularEstadisticasPeriodo();
 
-  // Calcular pagos y gastos de hoy
-  const hoyCalc = new Date();
-  hoyCalc.setHours(0, 0, 0, 0);
-  const mananaCalc = new Date(hoyCalc);
-  mananaCalc.setDate(hoyCalc.getDate() + 1);
+  // Calcular pagos y gastos según el filtro de fecha
+  let pagosFiltradosFecha: Pago[] = [];
+  let gastosFiltradosFecha: Gasto[] = [];
+  let fechaInicioDisplay = '';
+  let fechaFinDisplay = '';
 
-  const pagosHoy = pagos.filter(p => {
-    const fechaPago = parseDateUTC(p.fechaPago);
-    return fechaPago >= hoyCalc && fechaPago < mananaCalc;
-  });
-  const totalPagosHoy = pagosHoy.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+  if (usarHoy) {
+    // Solo datos de hoy
+    const hoyCalc = new Date();
+    hoyCalc.setHours(0, 0, 0, 0);
+    const mananaCalc = new Date(hoyCalc);
+    mananaCalc.setDate(hoyCalc.getDate() + 1);
 
-  const gastosHoy = gastos.filter(g => {
-    const fechaGasto = new Date(g.fecha);
-    fechaGasto.setHours(0, 0, 0, 0);
-    return fechaGasto >= hoyCalc && fechaGasto < mananaCalc && g.confirmado;
-  });
-  const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + parseFloat(g.monto), 0);
-  const balanceHoy = totalPagosHoy - totalGastosHoy;
+    pagosFiltradosFecha = pagos.filter(p => {
+      const fechaPago = parseDateUTC(p.fechaPago);
+      return fechaPago >= hoyCalc && fechaPago < mananaCalc;
+    });
+
+    gastosFiltradosFecha = gastos.filter(g => {
+      const fechaGasto = new Date(g.fecha);
+      fechaGasto.setHours(0, 0, 0, 0);
+      return fechaGasto >= hoyCalc && fechaGasto < mananaCalc && g.confirmado;
+    });
+
+    const hoyFormat = new Date();
+    const day = String(hoyFormat.getDate()).padStart(2, '0');
+    const month = String(hoyFormat.getMonth() + 1).padStart(2, '0');
+    fechaInicioDisplay = `${day}/${month}`;
+    fechaFinDisplay = `${day}/${month}`;
+  } else if (fechaInicio && fechaFin) {
+    // Datos en el rango de fechas
+    const [yearInicio, mesInicio, diaInicio] = fechaInicio.split('-').map(Number);
+    const inicio = new Date(yearInicio, mesInicio - 1, diaInicio, 0, 0, 0, 0);
+
+    const [yearFin, mesFin, diaFin] = fechaFin.split('-').map(Number);
+    const fin = new Date(yearFin, mesFin - 1, diaFin, 23, 59, 59, 999);
+
+    pagosFiltradosFecha = pagos.filter(p => {
+      const fechaPago = parseDateUTC(p.fechaPago);
+      return fechaPago >= inicio && fechaPago <= fin;
+    });
+
+    gastosFiltradosFecha = gastos.filter(g => {
+      const fechaGasto = new Date(g.fecha);
+      fechaGasto.setHours(0, 0, 0, 0);
+      return fechaGasto >= inicio && fechaGasto <= fin && g.confirmado;
+    });
+
+    fechaInicioDisplay = `${String(diaInicio).padStart(2, '0')}/${String(mesInicio).padStart(2, '0')}`;
+    fechaFinDisplay = `${String(diaFin).padStart(2, '0')}/${String(mesFin).padStart(2, '0')}`;
+  }
+
+  const totalPagosFiltrados = pagosFiltradosFecha.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+  const totalGastosFiltrados = gastosFiltradosFecha.reduce((sum, g) => sum + parseFloat(g.monto), 0);
+  const balanceFiltrado = totalPagosFiltrados - totalGastosFiltrados;
+
+  // Formato del título
+  const rangoFechas = fechaInicioDisplay === fechaFinDisplay ? fechaInicioDisplay : `${fechaInicioDisplay} a ${fechaFinDisplay}`;
 
   // Solo pagos desde 2025-10-04
   const FECHA_MINIMA = new Date('2025-10-04T00:00:00Z');
@@ -484,127 +523,6 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
         )}
       </div>
 
-      {/* Detalle de Pagos de Hoy */}
-      {detalleVisible === 'pagosHoy' && (
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-indigo-500">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Pagos de Hoy</h3>
-            <button
-              onClick={() => setDetalleVisible(null)}
-              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
-            >
-              ✕ Cerrar
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            {pagosHoy.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-3">📭</div>
-                <p className="text-gray-500 text-base font-medium">No hay pagos registrados hoy</p>
-              </div>
-            ) : (
-              <div>
-                {/* Desktop */}
-                <div className="hidden md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cliente</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {pagosHoy.map((pago) => (
-                        <tr key={pago.id} className="hover:bg-indigo-50 transition-colors duration-150">
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
-                          </td>
-                          <td className="px-4 py-3 text-sm font-bold text-green-600">{formatMoney(pago.monto)}</td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {pago.tipoPago}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile */}
-                <div className="md:hidden space-y-2">
-                  {pagosHoy.map((pago) => (
-                    <div key={pago.id} className="flex flex-col bg-white border rounded-lg p-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-800">{clientes.get(pago.clienteId)?.nombre || 'Desconocido'}</span>
-                        <span className="text-sm font-bold text-green-600">{formatMoney(pago.monto)}</span>
-                      </div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">{pago.tipoPago}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Detalle de Gastos de Hoy */}
-      {detalleVisible === 'gastosHoy' && (
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-red-500">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Gastos de Hoy</h3>
-            <button
-              onClick={() => setDetalleVisible(null)}
-              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
-            >
-              ✕ Cerrar
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            {gastosHoy.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-3">📭</div>
-                <p className="text-gray-500 text-base font-medium">No hay gastos confirmados hoy</p>
-              </div>
-            ) : (
-              <div>
-                {/* Desktop */}
-                <div className="hidden md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {gastosHoy.map((gasto) => (
-                        <tr key={gasto.id} className="hover:bg-red-50 transition-colors duration-150">
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{gasto.descripcion}</td>
-                          <td className="px-4 py-3 text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile */}
-                <div className="md:hidden space-y-2">
-                  {gastosHoy.map((gasto) => (
-                    <div key={gasto.id} className="flex items-center justify-between bg-white border rounded-lg p-2">
-                      <span className="text-sm font-semibold text-gray-900">{gasto.descripcion}</span>
-                      <span className="text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Detalle de pagos por categoría (desktop) */}
       {detalleVisible && ['osvaldo', 'noe', 'efectivo', 'otros'].includes(detalleVisible) && (
         <div className="hidden md:block">
@@ -663,9 +581,9 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
         </div>
       )}
 
-      {/* Resumen de Hoy: Pagos, Gastos y Balance */}
+      {/* Resumen de Período Filtrado: Pagos, Gastos y Balance */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Pagos de Hoy */}
+        {/* Pagos del Período */}
         <div
           onClick={() => setDetalleVisible(detalleVisible === 'pagosHoy' ? null : 'pagosHoy')}
           className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
@@ -673,14 +591,14 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           <div className="flex items-center justify-between">
             <div className="w-full">
               <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
-                Pagos de Hoy
+                Pagos de {rangoFechas}
               </h3>
               <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
-                {formatMoney(totalPagosHoy.toString())}
+                {formatMoney(totalPagosFiltrados.toString())}
               </p>
               <div className="mt-2">
                 <span className="inline-flex items-center px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold">
-                  📊 {pagosHoy.length} pagos - Click para ver detalle
+                  📊 {pagosFiltradosFecha.length} pagos - Click para ver detalle
                 </span>
               </div>
             </div>
@@ -688,7 +606,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           </div>
         </div>
 
-        {/* Gastos de Hoy */}
+        {/* Gastos del Período */}
         <div
           onClick={() => setDetalleVisible(detalleVisible === 'gastosHoy' ? null : 'gastosHoy')}
           className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105"
@@ -696,14 +614,14 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           <div className="flex items-center justify-between">
             <div className="w-full">
               <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
-                Gastos de Hoy
+                Gastos de {rangoFechas}
               </h3>
               <p className="text-2xl sm:text-3xl font-bold text-red-700">
-                {formatMoney(totalGastosHoy.toString())}
+                {formatMoney(totalGastosFiltrados.toString())}
               </p>
               <div className="mt-2">
                 <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs sm:text-sm font-semibold">
-                  📊 {gastosHoy.length} gastos - Click para ver detalle
+                  📊 {gastosFiltradosFecha.length} gastos - Click para ver detalle
                 </span>
               </div>
             </div>
@@ -711,10 +629,10 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           </div>
         </div>
 
-        {/* Balance de Hoy */}
+        {/* Balance del Período */}
         <div
           className={`bg-gradient-to-br rounded-xl shadow-lg p-4 sm:p-6 border-l-4 hover:shadow-xl transition-shadow duration-200 ${
-            balanceHoy >= 0
+            balanceFiltrado >= 0
               ? 'from-green-50 to-emerald-50 border-green-500'
               : 'from-orange-50 to-orange-100 border-orange-500'
           }`}
@@ -722,27 +640,148 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           <div className="flex items-center justify-between">
             <div className="w-full">
               <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
-                Balance de Hoy
+                Pagos - Gastos de {rangoFechas}
               </h3>
               <p className={`text-2xl sm:text-3xl font-bold ${
-                balanceHoy >= 0 ? 'text-green-700' : 'text-orange-700'
+                balanceFiltrado >= 0 ? 'text-green-700' : 'text-orange-700'
               }`}>
-                {formatMoney(balanceHoy.toString())}
+                {formatMoney(balanceFiltrado.toString())}
               </p>
               <div className="mt-2">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-semibold ${
-                  balanceHoy >= 0
+                  balanceFiltrado >= 0
                     ? 'bg-green-100 text-green-700'
                     : 'bg-orange-100 text-orange-700'
                 }`}>
-                  {balanceHoy >= 0 ? '📈 Positivo' : '📉 Negativo'}
+                  {balanceFiltrado >= 0 ? '📈 Positivo' : '📉 Negativo'}
                 </span>
               </div>
             </div>
-            <div className="text-3xl sm:text-4xl">{balanceHoy >= 0 ? '✅' : '⚠️'}</div>
+            <div className="text-3xl sm:text-4xl">{balanceFiltrado >= 0 ? '✅' : '⚠️'}</div>
           </div>
         </div>
       </div>
+
+      {/* Detalle de Pagos del Período */}
+      {detalleVisible === 'pagosHoy' && (
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-indigo-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Pagos de {rangoFechas}</h3>
+            <button
+              onClick={() => setDetalleVisible(null)}
+              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
+            >
+              ✕ Cerrar
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            {pagosFiltradosFecha.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-3">📭</div>
+                <p className="text-gray-500 text-base font-medium">No hay pagos registrados en este período</p>
+              </div>
+            ) : (
+              <div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cliente</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {pagosFiltradosFecha.map((pago) => (
+                        <tr key={pago.id} className="hover:bg-indigo-50 transition-colors duration-150">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                            {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-green-600">{formatMoney(pago.monto)}</td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {pago.tipoPago}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile */}
+                <div className="md:hidden space-y-2">
+                  {pagosFiltradosFecha.map((pago) => (
+                    <div key={pago.id} className="flex flex-col bg-white border rounded-lg p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-800">{clientes.get(pago.clienteId)?.nombre || 'Desconocido'}</span>
+                        <span className="text-sm font-bold text-green-600">{formatMoney(pago.monto)}</span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">{pago.tipoPago}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Detalle de Gastos del Período */}
+      {detalleVisible === 'gastosHoy' && (
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-red-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Gastos de {rangoFechas}</h3>
+            <button
+              onClick={() => setDetalleVisible(null)}
+              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm"
+            >
+              ✕ Cerrar
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            {gastosFiltradosFecha.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-3">📭</div>
+                <p className="text-gray-500 text-base font-medium">No hay gastos confirmados en este período</p>
+              </div>
+            ) : (
+              <div>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {gastosFiltradosFecha.map((gasto) => (
+                        <tr key={gasto.id} className="hover:bg-red-50 transition-colors duration-150">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{gasto.descripcion}</td>
+                          <td className="px-4 py-3 text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile */}
+                <div className="md:hidden space-y-2">
+                  {gastosFiltradosFecha.map((gasto) => (
+                    <div key={gasto.id} className="flex items-center justify-between bg-white border rounded-lg p-2">
+                      <span className="text-sm font-semibold text-gray-900">{gasto.descripcion}</span>
+                      <span className="text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Total del Período Filtrado */}
       {!usarHoy && (
@@ -750,7 +789,7 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-gray-600 text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2">
-                Total del Período
+                Total de pagos del periodo {rangoFechas}
               </h3>
               <p className="text-2xl sm:text-3xl font-bold text-indigo-700">
                 {formatMoney((stats.totalOsvaldo + stats.totalNoe + stats.totalEfectivo + stats.totalOtros).toString())}

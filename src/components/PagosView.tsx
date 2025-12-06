@@ -606,6 +606,36 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
           </div>
         </div>
 
+        {/* Mobile: detalle inline debajo de la card Pagos */}
+        {detalleVisible === 'pagosHoy' && (
+          <div className="md:hidden bg-white rounded-xl shadow mt-3 py-4 px-2 col-span-full">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-800">📋 Detalle de Pagos de {rangoFechas}</h4>
+              <button onClick={() => setDetalleVisible(null)} className="text-sm text-red-500 font-semibold">✕ Cerrar</button>
+            </div>
+            {pagosFiltradosFecha.length === 0 ? (
+              <div className="text-center py-4">
+                <div className="text-4xl mb-2">📭</div>
+                <p className="text-gray-500 text-sm">No hay pagos en este período</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pagosFiltradosFecha.map((pago) => (
+                  <div key={pago.id} className="flex flex-col bg-white border rounded-lg p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-800">{clientes.get(pago.clienteId)?.nombre || 'Desconocido'}</span>
+                      <span className="text-sm font-bold text-green-600">{formatMoney(pago.monto)}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">{pago.tipoPago}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Gastos del Período */}
         <div
           onClick={() => setDetalleVisible(detalleVisible === 'gastosHoy' ? null : 'gastosHoy')}
@@ -628,6 +658,31 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
             <div className="text-3xl sm:text-4xl">💸</div>
           </div>
         </div>
+
+        {/* Mobile: detalle inline debajo de la card Gastos */}
+        {detalleVisible === 'gastosHoy' && (
+          <div className="md:hidden bg-white rounded-xl shadow mt-3 py-4 px-2 col-span-full">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-800">📋 Detalle de Gastos de {rangoFechas}</h4>
+              <button onClick={() => setDetalleVisible(null)} className="text-sm text-red-500 font-semibold">✕ Cerrar</button>
+            </div>
+            {gastosFiltradosFecha.length === 0 ? (
+              <div className="text-center py-4">
+                <div className="text-4xl mb-2">📭</div>
+                <p className="text-gray-500 text-sm">No hay gastos en este período</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {gastosFiltradosFecha.map((gasto) => (
+                  <div key={gasto.id} className="flex items-center justify-between bg-white border rounded-lg p-2">
+                    <span className="text-sm font-semibold text-gray-900">{gasto.descripcion}</span>
+                    <span className="text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Balance del Período */}
         <div
@@ -662,9 +717,9 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
         </div>
       </div>
 
-      {/* Detalle de Pagos del Período */}
+      {/* Detalle de Pagos del Período (desktop) */}
       {detalleVisible === 'pagosHoy' && (
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-indigo-500">
+        <div className="hidden md:block bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-indigo-500">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Pagos de {rangoFechas}</h3>
             <button
@@ -681,57 +736,38 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
                 <p className="text-gray-500 text-base font-medium">No hay pagos registrados en este período</p>
               </div>
             ) : (
-              <div>
-                {/* Desktop */}
-                <div className="hidden md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cliente</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {pagosFiltradosFecha.map((pago) => (
-                        <tr key={pago.id} className="hover:bg-indigo-50 transition-colors duration-150">
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
-                          </td>
-                          <td className="px-4 py-3 text-sm font-bold text-green-600">{formatMoney(pago.monto)}</td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {pago.tipoPago}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile */}
-                <div className="md:hidden space-y-2">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cliente</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {pagosFiltradosFecha.map((pago) => (
-                    <div key={pago.id} className="flex flex-col bg-white border rounded-lg p-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-800">{clientes.get(pago.clienteId)?.nombre || 'Desconocido'}</span>
-                        <span className="text-sm font-bold text-green-600">{formatMoney(pago.monto)}</span>
-                      </div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">{pago.tipoPago}</span>
-                      </div>
-                    </div>
+                    <tr key={pago.id} className="hover:bg-indigo-50 transition-colors duration-150">
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                        {clientes.get(pago.clienteId)?.nombre || 'Desconocido'}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold text-green-600">{formatMoney(pago.monto)}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {pago.tipoPago}
+                        </span>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             )}
           </div>
         </div>
       )}
 
-      {/* Detalle de Gastos del Período */}
+      {/* Detalle de Gastos del Período (desktop) */}
       {detalleVisible === 'gastosHoy' && (
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-red-500">
+        <div className="hidden md:block bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 border-red-500">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900">📋 Detalle de Gastos de {rangoFechas}</h3>
             <button
@@ -748,36 +784,22 @@ export default function PagosView({ refreshKey }: PagosViewProps) {
                 <p className="text-gray-500 text-base font-medium">No hay gastos confirmados en este período</p>
               </div>
             ) : (
-              <div>
-                {/* Desktop */}
-                <div className="hidden md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {gastosFiltradosFecha.map((gasto) => (
-                        <tr key={gasto.id} className="hover:bg-red-50 transition-colors duration-150">
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{gasto.descripcion}</td>
-                          <td className="px-4 py-3 text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Mobile */}
-                <div className="md:hidden space-y-2">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {gastosFiltradosFecha.map((gasto) => (
-                    <div key={gasto.id} className="flex items-center justify-between bg-white border rounded-lg p-2">
-                      <span className="text-sm font-semibold text-gray-900">{gasto.descripcion}</span>
-                      <span className="text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</span>
-                    </div>
+                    <tr key={gasto.id} className="hover:bg-red-50 transition-colors duration-150">
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">{gasto.descripcion}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-red-600">{formatMoney(gasto.monto)}</td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             )}
           </div>
         </div>

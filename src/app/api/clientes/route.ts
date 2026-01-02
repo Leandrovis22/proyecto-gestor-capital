@@ -10,8 +10,17 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const soloDeudores = searchParams.get('deudores') === 'true';
     
+    // Construir condiciones de filtro
+    const whereConditions: any = {
+      activo: true // Solo mostrar clientes activos (no eliminados del Drive)
+    };
+    
+    if (soloDeudores) {
+      whereConditions.saldoAPagar = { gt: 0 };
+    }
+    
     const clientes = await prisma.cliente.findMany({
-      where: soloDeudores ? { saldoAPagar: { gt: 0 } } : undefined,
+      where: whereConditions,
       include: {
         _count: {
           select: { pagos: true, ventas: true }
